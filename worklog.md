@@ -357,3 +357,77 @@ Recommandations pour la prochaine phase :
 - Ajouter des raccourcis clavier supplémentaires (ex: "V" pour ventes, "P" pour produits quand la palette est fermée).
 - Envisager un mode sombre (next-themes est déjà installé mais non câblé).
 - Ajouter des graphiques sur le Dashboard (tendance CA des 7 derniers jours) une fois qu'il y a des données.
+
+---
+Task ID: 9
+Agent: webDevReview (cron round 2)
+Task: QA + mode sombre + graphique Dashboard + polish styling
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.8s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules fonctionnels + palette de commandes Cmd+K (round précédent).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (le navigateur headless a une IP publique 47.57.232.232 mais ne peut pas atteindre localhost:3000 ni la passerelle Caddy). QA réalisée via curl + inspection HTML.
+- Recommandations du round précédent à traiter : mode sombre, graphique Dashboard, polish styling.
+
+## Modifications réalisées
+
+### 1. Mode sombre (next-themes) — Feature majeure
+- Créé `src/components/theme-provider.tsx` : wrapper client autour de `next-themes` (attribute="class", defaultTheme="system", storageKey="elishama-theme", enableSystem, disableTransitionOnChange).
+- Créé `src/components/theme-toggle.tsx` : bouton ghost avec icône Moon/Sun, gestion du montage différé (évite le flash d'hydration), aria-label dynamique.
+- Modifié `src/app/layout.tsx` : 
+  * Wrappé children + Toaster + SonnerToaster dans `<ThemeProvider>`.
+  * Ajouté un script anti-flash inline dans `<head>` qui lit `localStorage.getItem('elishama-theme')` et applique la classe `.dark` avant l'hydration (évite le FOUC).
+- Modifié `src/app/globals.css` : palette sombre refactorisée vers des **tons chauds ambre** (au lieu du gris achromatique précédent) :
+  * background `oklch(0.16 0.012 55)`, card `oklch(0.205 0.015 55)`, primary `oklch(0.72 0.16 50)` (ambre lumineux pour contraste sur fond sombre).
+  * Coordonnées chromatiques cohérentes avec le thème clair (hue 50-55 ambre).
+  * Scrollbar sombre personnalisée (`.dark .scrollbar-thin`).
+  * Transition douce `background-color 0.2s` sur le body.
+- Modifié `src/components/AppShell.tsx` : `ThemeToggle` intégré à 3 endroits :
+  * Header mobile (à côté du bouton recherche).
+  * Header desktop (entre le bouton recherche et la date).
+  * Pied de sidebar (à droite du texte "Données locales / v1.0").
+
+### 2. Graphique Dashboard — Feature majeure
+- Modifié `src/components/modules/Dashboard.tsx` :
+  * Ajouté imports recharts (ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid).
+  * Nouveau `useMemo` `weekData` : calcule le CA + dépenses des 7 derniers jours (boucle i=6→0, filtre `isSameDay`).
+  * Nouveau `useMemo` `topProducts` : agrège les quantités/revenus par productId sur toutes les ventes, trie par qty desc, top 5.
+  * Nouvelle section entre les stats et l'activité récente : grille 2/3 + 1/3 :
+    - **Card "Revenus des 7 derniers jours"** (lg:col-span-2) : AreaChart avec 2 aires (revenus ambre + dépenses rouge), dégradés en fill, grille pointillée, axes minimalistes, tooltip personnalisé utilisant les variables CSS (var(--popover), var(--border)) pour le support dark mode, formatage devise via `formatCurrency`. Affiche le total de la semaine dans le header. État vide intelligent si aucune donnée.
+    - **Card "Top produits"** : liste des 5 produits les plus vendus avec badges médailles (or/argent/bronze pour le top 3, muted pour le reste), quantité + revenu par produit, bouton "Voir les rapports".
+  * Ces sections ne s'affichent que quand l'app contient des données (le panneau de bienvenue reste prioritaire au premier lancement).
+
+### 3. Polish styling
+- Modifié `src/components/AppShell.tsx` (sidebar nav) :
+  * Effet `hover:translate-x-0.5` (léger déplacement horizontal au survol).
+  * Icônes `group-hover:scale-110` (agrandissement au survol).
+  * Badge stock faible : s'adapte à l'état actif (`bg-white/25 text-white` quand actif au lieu de `bg-amber-500`).
+  * `transition-all` au lieu de `transition-colors`.
+- Modifié `src/components/shared.tsx` (StatCard) :
+  * `hover:-translate-y-0.5` (léger soulèvement au survol).
+  * `transition-all duration-200`.
+  * Icône `hover:scale-105` dans son conteneur coloré.
+- Modifié `src/app/globals.css` (focus rings) :
+  * Ajout d'un anneau de focus cohérent pour tous les éléments interactifs (button, a, input, select, textarea) via `ring-2 ring-ring ring-offset-2 ring-offset-background` sur `:focus-visible`.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 65Ko (vs 59Ko avant), compile en 5.8s, 0 erreur.
+- Inspection HTML : 
+  * recharts bundlé ✅
+  * script anti-flash `elishama-theme` présent (2 occurrences) ✅
+  * panneau de bienvenue rend correctement pour données vides ✅
+  * titre correct ✅
+- ThemeToggle : icônes non rendues en SSR (montage différé pour éviter flash d'hydration) — comportement attendu et correct.
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). La QA visuelle interactive n'est pas possible depuis le cron ; seuls curl + inspection HTML sont utilisés. L'utilisateur peut vérifier visuellement via le Panneau de prévisualisation.
+- Le mode sombre n'a pas pu être testé visuellement (bascule thème → vérifier le rendu). La logique next-themes + anti-flash est standard et conforme à la documentation.
+
+## Recommandations pour la prochaine phase
+- Tester visuellement le mode sombre (bascule via le bouton) et ajuster les contrastes si besoin.
+- Vérifier le rendu du graphique AreaChart avec des données réelles (ajouter des ventes puis consulter le Dashboard).
+- Ajouter des raccourcis clavier supplémentaires (V/P/T quand la palette est fermée).
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter une page d'aide / raccourcis clavier accessible via "?".

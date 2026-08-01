@@ -35,6 +35,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { isSameDay, formatCurrency, formatDateTime } from "@/lib/format";
 import type { ModuleKey } from "@/lib/types";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }) {
   const { data, getCategoryName } = useStore();
@@ -77,6 +86,46 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
     });
     return items.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
   }, [data]);
+
+  // Données du graphique : CA des 7 derniers jours
+  const weekData = useMemo(() => {
+    const days: { label: string; revenue: number; expenses: number; date: Date }[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const daySales = data.sales.filter((s) => isSameDay(s.createdAt, d));
+      const dayExpenses = data.expenses.filter((e) => isSameDay(e.date, d));
+      days.push({
+        label: d.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", ""),
+        revenue: daySales.reduce((a, b) => a + b.total, 0),
+        expenses: dayExpenses.reduce((a, b) => a + b.amount, 0),
+        date: d,
+      });
+    }
+    return days;
+  }, [data.sales, data.expenses]);
+
+  const weekRevenue = weekData.reduce((a, b) => a + b.revenue, 0);
+  const weekHasData = weekRevenue > 0 || weekData.some((d) => d.expenses > 0);
+
+  // Top 5 produits vendus (tous temps)
+  const topProducts = useMemo(() => {
+    const counts = new Map<string, { name: string; qty: number; revenue: number }>();
+    data.sales.forEach((s) => {
+      s.items.forEach((it) => {
+        const existing = counts.get(it.productId);
+        if (existing) {
+          existing.qty += it.quantity;
+          existing.revenue += it.total;
+        } else {
+          counts.set(it.productId, { name: it.productName, qty: it.quantity, revenue: it.total });
+        }
+      });
+    });
+    return [...counts.values()].sort((a, b) => b.qty - a.qty).slice(0, 5);
+  }, [data.sales]);
 
   // Détermine si c'est un premier lancement (pas de produits ni ventes)
   const isEmpty = stats.activeProducts === 0 && data.sales.length === 0 && data.expenses.length === 0;
@@ -140,6 +189,140 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
             <StatCard label="En rupture" value={stats.outOfStock.length} icon={PackageX} tone="danger" hint={stats.outOfStock.slice(0, 2).map((p) => p.name).join(", ") || "Aucune"} />
             <StatCard label="Stock faible" value={stats.lowStock.length} icon={AlertTriangle} tone="warning" hint={stats.lowStock.slice(0, 2).map((p) => p.name).join(", ") || "Aucun"} />
             <StatCard label="Tickets ouverts" value={stats.openTickets} icon={TicketIcon} tone="primary" />
+          </div>
+
+          {/* Graphique CA 7 jours + Top produits */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+            <Card className="lg:col-span-2 border-border/60">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" /> Revenus des 7 derniers jours
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total : <span className="font-semibold text-foreground">{formatCurrency(weekRevenue, currency)}</span>
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => onNavigate("reports")} className="text-xs">
+                  Rapports
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {weekHasData ? (
+                  <div className="h-[220px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={weekData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="oklch(0.62 0.17 45)" stopOpacity={0.35} />
+                            <stop offset="95%" stopColor="oklch(0.62 0.17 45)" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="oklch(0.577 0.245 27)" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="oklch(0.577 0.245 27)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 60)" vertical={false} />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 11, fill: "oklch(0.52 0.02 60)" }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "oklch(0.52 0.02 60)" }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={48}
+                          tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "var(--popover)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            color: "var(--popover-foreground)",
+                          }}
+                          labelStyle={{ color: "var(--muted-foreground)", marginBottom: "4px" }}
+                          formatter={(value: number, name: string) => [
+                            formatCurrency(value, currency),
+                            name === "revenue" ? "Ventes" : "Dépenses",
+                          ]}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="oklch(0.62 0.17 45)"
+                          strokeWidth={2}
+                          fill="url(#colorRevenue)"
+                          name="revenue"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="expenses"
+                          stroke="oklch(0.577 0.245 27)"
+                          strokeWidth={2}
+                          fill="url(#colorExpenses)"
+                          name="expenses"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={TrendingUp}
+                    title="Pas encore de données"
+                    description="Les revenus des 7 derniers jours apparaîtront ici dès votre première vente."
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top 5 produits */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <UtensilsCrossed className="h-4 w-4 text-primary" /> Top produits
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {topProducts.length === 0 ? (
+                  <EmptyState
+                    icon={UtensilsCrossed}
+                    title="Aucune vente"
+                    description="Les produits les plus vendus apparaîtront ici."
+                  />
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {topProducts.map((p, i) => (
+                      <li key={p.name} className="flex items-center gap-3 px-4 py-3">
+                        <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold shrink-0 ${
+                          i === 0 ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                          : i === 1 ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                          : i === 2 ? "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400"
+                          : "bg-muted text-muted-foreground"
+                        }`}>
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{p.qty} vendu(s)</p>
+                        </div>
+                        <span className="text-sm font-semibold text-emerald-600 shrink-0">
+                          <Money amount={p.revenue} currency={currency} />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="p-3 border-t">
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => onNavigate("reports")}>
+                    Voir les rapports
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">

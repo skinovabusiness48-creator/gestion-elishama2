@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/CommandPalette";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   LayoutDashboard,
   Receipt,
@@ -77,20 +78,23 @@ function SidebarContent({
             const active = current === item.key;
             const Icon = item.icon;
             return (
-              <li key={item.key}>
+              <li key={item.key} className="relative">
                 <button
                   onClick={() => onSelect(item.key)}
                   className={cn(
-                    "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors text-left",
+                    "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all text-left group",
                     active
                       ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
                   )}
                 >
-                  <Icon className="h-4.5 w-4.5 shrink-0" />
+                  <Icon className={cn("h-4.5 w-4.5 shrink-0 transition-transform", !active && "group-hover:scale-110")} />
                   <span className="flex-1 truncate">{item.label}</span>
                   {item.key === "stock" && lowStock > 0 && (
-                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
+                    <span className={cn(
+                      "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-colors",
+                      active ? "bg-white/25 text-white" : "bg-amber-500 text-white"
+                    )}>
                       {lowStock}
                     </span>
                   )}
@@ -102,9 +106,14 @@ function SidebarContent({
       </nav>
 
       {/* Pied de sidebar */}
-      <div className="border-t border-sidebar-border px-5 py-3 text-xs text-sidebar-foreground/50">
-        <p>Données stockées localement</p>
-        <p className="mt-0.5">v1.0 — 100% hors ligne</p>
+      <div className="border-t border-sidebar-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-sidebar-foreground/50 min-w-0">
+            <p className="truncate">Données locales</p>
+            <p className="mt-0.5">v1.0 — 100% hors ligne</p>
+          </div>
+          <ThemeToggle className="h-8 w-8 shrink-0 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent" />
+        </div>
       </div>
     </div>
   );
@@ -160,6 +169,7 @@ export function AppShell({
           <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setSearchOpen(true)} aria-label="Rechercher">
             <Search className="h-5 w-5" />
           </Button>
+          <ThemeToggle className="h-9 w-9 shrink-0" />
         </header>
 
         {/* Header desktop */}
@@ -181,6 +191,7 @@ export function AppShell({
                 ⌘K
               </kbd>
             </Button>
+            <ThemeToggle className="h-9 w-9" />
             <span className="hidden sm:inline">
               {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </span>

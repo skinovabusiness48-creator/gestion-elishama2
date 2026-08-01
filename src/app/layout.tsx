@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +30,17 @@ export const metadata: Metadata = {
   },
 };
 
+// Script anti-flash : applique la classe .dark avant l'hydration si nécessaire
+const themeScript = `
+(function() {
+  try {
+    var t = localStorage.getItem('elishama-theme');
+    var m = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (t === 'dark' || (!t && m)) document.documentElement.classList.add('dark');
+  } catch(e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,12 +48,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
-        <SonnerToaster richColors position="top-right" />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          storageKey="elishama-theme"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster />
+          <SonnerToaster richColors position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   );

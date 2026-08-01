@@ -71,7 +71,7 @@ export function StatCard({
     primary: "bg-primary/15 text-primary",
   };
   return (
-    <Card className="overflow-hidden border-border/60 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -79,7 +79,7 @@ export function StatCard({
             <p className="text-lg sm:text-2xl font-bold tracking-tight mt-1 break-words">{value}</p>
             {hint && <p className="text-xs text-muted-foreground mt-1 truncate">{hint}</p>}
           </div>
-          <div className={cn("flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl shrink-0", toneClasses[tone])}>
+          <div className={cn("flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl shrink-0 transition-transform hover:scale-105", toneClasses[tone])}>
             <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
         </div>
