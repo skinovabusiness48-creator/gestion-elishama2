@@ -250,6 +250,36 @@ export function Reports() {
   const profit = salesStats.revenue - expenseStats.total;
   const margin = salesStats.revenue > 0 ? (profit / salesStats.revenue) * 100 : 0;
 
+  // -------- Période précédente (comparaison) --------
+  const previousPeriod = useMemo(() => {
+    const duration = dateRange.end.getTime() - dateRange.start.getTime();
+    const prevEnd = new Date(dateRange.start.getTime() - 1); // jour avant le début
+    const prevStart = new Date(prevEnd.getTime() - duration);
+    const prevSales = data.sales.filter((s) => {
+      const d = new Date(s.createdAt);
+      return d >= prevStart && d <= prevEnd;
+    });
+    const prevExpenses = data.expenses.filter((e) => {
+      const d = new Date(e.date);
+      return d >= prevStart && d <= prevEnd;
+    });
+    const prevRevenue = prevSales.reduce((a, b) => a + b.total, 0);
+    const prevExpensesTotal = prevExpenses.reduce((a, b) => a + b.amount, 0);
+    const prevProfit = prevRevenue - prevExpensesTotal;
+    return {
+      revenue: prevRevenue,
+      expenses: prevExpensesTotal,
+      profit: prevProfit,
+      salesCount: prevSales.length,
+      start: prevStart,
+      end: prevEnd,
+    };
+  }, [data.sales, data.expenses, dateRange.start, dateRange.end]);
+
+  const hasPreviousData = previousPeriod.revenue > 0 || previousPeriod.expenses > 0;
+  const revenueDiff = salesStats.revenue - previousPeriod.revenue;
+  const profitDiff = profit - previousPeriod.profit;
+
   // -------- Export --------
   function exportJSON() {
     const payload = {
@@ -905,6 +935,58 @@ export function Reports() {
               tone={margin >= 0 ? "success" : "danger"}
             />
           </div>
+
+          {/* Comparaison avec la période précédente */}
+          {hasPreviousData && (
+            <Card className="border-border/60 mt-4">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Comparaison avec la période précédente
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Du {formatDate(previousPeriod.start, dateFormat)} au {formatDate(previousPeriod.end, dateFormat)}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* CA */}
+                  <div className="rounded-lg border border-border/60 p-4">
+                    <p className="text-xs text-muted-foreground">Chiffre d'affaires</p>
+                    <p className="text-lg font-bold mt-1">
+                      <Money amount={previousPeriod.revenue} currency={currency} />
+                    </p>
+                    <p className={`text-xs font-medium mt-1 ${revenueDiff >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      {revenueDiff >= 0 ? "↑" : "↓"} {revenueDiff >= 0 ? "+" : "−"}
+                      <Money amount={Math.abs(revenueDiff)} currency={currency} />
+                    </p>
+                  </div>
+                  {/* Dépenses */}
+                  <div className="rounded-lg border border-border/60 p-4">
+                    <p className="text-xs text-muted-foreground">Dépenses</p>
+                    <p className="text-lg font-bold mt-1">
+                      <Money amount={previousPeriod.expenses} currency={currency} />
+                    </p>
+                    <p className={`text-xs font-medium mt-1 ${previousPeriod.expenses - expenseStats.total >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      {previousPeriod.expenses - expenseStats.total >= 0 ? "↓" : "↑"}
+                      {previousPeriod.expenses - expenseStats.total >= 0 ? " −" : " +"}
+                      <Money amount={Math.abs(previousPeriod.expenses - expenseStats.total)} currency={currency} />
+                    </p>
+                  </div>
+                  {/* Résultat */}
+                  <div className="rounded-lg border border-border/60 p-4">
+                    <p className="text-xs text-muted-foreground">Résultat</p>
+                    <p className={`text-lg font-bold mt-1 ${previousPeriod.profit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      <Money amount={previousPeriod.profit} currency={currency} />
+                    </p>
+                    <p className={`text-xs font-medium mt-1 ${profitDiff >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      {profitDiff >= 0 ? "↑" : "↓"} {profitDiff >= 0 ? "+" : "−"}
+                      <Money amount={Math.abs(profitDiff)} currency={currency} />
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

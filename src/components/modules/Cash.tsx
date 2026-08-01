@@ -113,16 +113,17 @@ export function Cash() {
     let manualOut = 0;
     let opening = 0;
     let solde = 0;
+    let salesCount = 0;
     for (const o of todayOps) {
       solde += o.amount;
-      if (o.type === "sale") sales += o.amount;
+      if (o.type === "sale") { sales += o.amount; salesCount++; }
       else if (o.type === "expense") expenses += -o.amount; // stored negative
       else if (o.type === "in") manualIn += o.amount;
       else if (o.type === "out") manualOut += -o.amount; // stored negative
       else if (o.type === "open") opening += o.amount;
     }
     const profit = sales - expenses;
-    return { sales, expenses, manualIn, manualOut, solde, opening, profit };
+    return { sales, expenses, manualIn, manualOut, solde, opening, profit, salesCount };
   }, [todayOps]);
 
   // ---- Caisse ouverte ? ----
@@ -523,13 +524,20 @@ export function Cash() {
           </DialogHeader>
           <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Ventes du jour</span>
+              <span className="text-muted-foreground">Ventes du jour ({stats.salesCount})</span>
               <span className="text-emerald-600">{formatCurrency(stats.sales, currency)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Dépenses du jour</span>
               <span className="text-red-600">- {formatCurrency(stats.expenses, currency)}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Bénéfice estimé</span>
+              <span className={stats.profit >= 0 ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                {formatCurrency(stats.profit, currency)}
+              </span>
+            </div>
+            <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Entrées manuelles</span>
               <span className="text-emerald-600">{formatCurrency(stats.manualIn, currency)}</span>
@@ -550,10 +558,13 @@ export function Cash() {
               </span>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setCloseCashOpen(false)}>Annuler</Button>
+            <Button variant="secondary" className="gap-2" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" /> Imprimer
+            </Button>
             <Button onClick={handleCloseCash} variant="destructive" className="gap-2">
-              <Lock className="h-4 w-4" /> Fermer la caisse
+              <Lock className="h-4 w-4" /> Fermer
             </Button>
           </DialogFooter>
         </DialogContent>

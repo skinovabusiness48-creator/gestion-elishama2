@@ -835,3 +835,57 @@ Task: QA + indicateur tendance bénéfice + statistiques avancées Rapports
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter un comparatif de périodes dans les Rapports (ex: ce mois vs mois dernier).
 - Envisager une fonctionnalité de "clôture de journée" qui archive les opérations du jour.
+
+---
+Task ID: 17
+Agent: webDevReview (cron round 10)
+Task: QA + comparaison périodes Rapports + amélioration clôture caisse
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.3s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard + aide/raccourcis + favoris + tooltips + raccourci N + alertes + tendance bénéfice + stats avancées (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+
+## Modifications réalisées
+
+### 1. Comparaison de périodes dans le module Rapports 📊
+- Modifié `src/components/modules/Reports.tsx` :
+  * Nouveau `useMemo` `previousPeriod` : calcule la période précédente (même durée, juste avant la période actuelle) en utilisant `dateRange.start.getTime() - 1` comme fin et `prevEnd - duration` comme début.
+  * Filtre les ventes et dépenses de la période précédente, calcule `prevRevenue`, `prevExpensesTotal`, `prevProfit`, `prevSalesCount`.
+  * `hasPreviousData` : true si la période précédente a eu du CA ou des dépenses.
+  * `revenueDiff` et `profitDiff` : différences entre période actuelle et précédente.
+  * **Nouvelle carte "Comparaison avec la période précédente"** dans l'onglet Bénéfice, affichée si `hasPreviousData` :
+    - Header avec dates de la période précédente (formatées).
+    - 3 colonnes (CA, Dépenses, Résultat) avec montant de la période précédente + différence colorée (↑ vert / ↓ rouge).
+    - Pour les dépenses, la logique est inversée : ↓ vert (dépenses en baisse = bien), ↑ rouge (dépenses en hausse = mal).
+    - Grille responsive `grid-cols-1 sm:grid-cols-3`.
+
+### 2. Amélioration de la clôture de caisse 💰
+- Modifié `src/components/modules/Cash.tsx` :
+  * `stats` : ajout de `salesCount` (nombre de ventes du jour, incrémenté pour chaque opération de type "sale").
+  * **Dialog "Fermer la caisse" enrichi** :
+    - Ligne "Ventes du jour" affiche maintenant le nombre de ventes : "Ventes du jour (X)".
+    - Nouvelle ligne "Bénéfice estimé" (CA - dépenses) avec couleur conditionnelle (vert si positif, rouge si négatif).
+    - Séparateur entre la section ventes/dépenses/bénéfice et la section entrées/sorties/fond.
+    - **Bouton "Imprimer"** ajouté dans le footer (variant secondary, icône Printer) qui déclenche `window.print()` pour imprimer le récapitulatif avant fermeture.
+    - Footer avec 3 boutons : Annuler, Imprimer, Fermer (destructive).
+    - `gap-2` sur le footer pour un espacement propre.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 73Ko, compile en 5.3s, 0 erreur.
+- Inspection HTML : tous les marqueurs présents — Bienvenue, Aide, elishama-theme (dark mode), recharts (graphique), raccourci: 0-9 (sidebar), tooltip-trigger, pulse-subtle.
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). La QA visuelle interactive reste impossible depuis le cron.
+- La comparaison de périodes et l'enrichissement de la clôture n'ont pas pu être testés visuellement avec des données réelles. La logique est standard (filtrage par date + calculs + affichage conditionnel).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement via le Panneau de prévisualisation :
+  * La comparaison de périodes dans Rapports → onglet Bénéfice (créer des ventes/dépenses sur deux périodes consécutives)
+  * Le dialog de clôture enrichi dans Caisse → Fermer la caisse
+- Envisager d'ajouter des tooltips sur les boutons d'action des modules Tickets, Expenses.
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter une fonctionnalité de "réouverture" de caisse après fermeture accidentelle.
+- Envisager un graphique d'évolution du CA sur 30 jours dans les Rapports.
