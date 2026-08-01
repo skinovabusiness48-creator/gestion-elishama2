@@ -782,3 +782,56 @@ Task: QA + pulse animation + rappel tickets ouverts + tooltips actions Produits
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter un indicateur visuel de bénéfice (flèche verte/rouge) sur le Dashboard selon la tendance.
 - Envisager une page de statistiques avancées (ventes par heure, jour de la semaine le plus rentable).
+
+---
+Task ID: 16
+Agent: webDevReview (cron round 9)
+Task: QA + indicateur tendance bénéfice + statistiques avancées Rapports
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.5s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard + aide/raccourcis + favoris + tooltips + raccourci N + alertes stock/tickets (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+
+## Modifications réalisées
+
+### 1. Indicateur de tendance du bénéfice sur le Dashboard 📈
+- Modifié `src/components/modules/Dashboard.tsx` (stats useMemo) :
+  * Ajout du calcul du bénéfice d'hier (`yesterdayProfit`) : filtre les ventes/dépenses avec `isSameDay(date, yesterday)` où yesterday = aujourd'hui - 1 jour.
+  * Calcul de `profitDiff = profit - yesterdayProfit` et `profitTrend` ("up" | "down" | "neutral").
+  * Si `yesterdayProfit === 0` → "neutral" (pas de comparaison possible).
+- La StatCard "Bénéfice estimé" affiche maintenant un hint contextuel :
+  * Tendance ↑ : "↑ +X FCFA vs hier" (vert implicite)
+  * Tendance ↓ : "↓ −X FCFA vs hier" (rouge implicite)
+  * Stable : "Stable vs hier"
+  * Pas de comparaison : "Ventes - Dépenses" (fallback)
+
+### 2. Statistiques avancées dans le module Rapports 📊
+- Modifié `src/components/modules/Reports.tsx` (salesStats useMemo) :
+  * **Ventes par jour de la semaine** : agrège le CA par jour (Lun→Dim), construit `weekdayChart` (7 entrées, nom abrégé 3 lettres) et `bestWeekday` (jour avec le plus haut CA).
+  * **Ventes par heure** : agrège le CA sur 24 plages horaires (0h-23h), construit `hourlyChart` (uniquement les heures avec ventes) et `peakHour` (heure de pointe).
+- Ajout d'une nouvelle section "Statistiques avancées" à la fin de l'onglet Ventes :
+  * **Card "Ventes par jour de la semaine"** : BarChart ambre (7 barres Lun-Dim), header avec "Meilleur jour : X (Y FCFA)", état vide si pas de ventes.
+  * **Card "Ventes par heure"** : BarChart vert (heures avec ventes), header avec "Heure de pointe : Xh (Y FCFA)", état vide si pas de ventes.
+  * Tooltips recharts personnalisés avec variables CSS (var(--popover), var(--border)) pour le support dark mode.
+  * Grille responsive `grid-cols-1 lg:grid-cols-2`.
+- Import des icônes `Calendar` et `Clock` depuis lucide-react.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 73Ko, compile en 5.5s, 0 erreur.
+- Inspection HTML : tous les marqueurs présents — Bienvenue, Aide, elishama-theme (dark mode), recharts (graphique), raccourci: 0-9 (sidebar), tooltip-trigger, pulse-subtle.
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). La QA visuelle interactive reste impossible depuis le cron.
+- L'indicateur de tendance et les graphiques avancés n'ont pas pu être testés visuellement avec des données réelles. La logique est standard (filtrage par date + agrégation + recharts).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement via le Panneau de prévisualisation :
+  * L'indicateur de tendance (créer des ventes/dépenses hier et aujourd'hui pour voir la comparaison)
+  * Les graphiques "Ventes par jour de la semaine" et "Ventes par heure" dans Rapports → onglet Ventes
+- Envisager d'ajouter des tooltips sur les boutons d'action des modules Tickets, Cash, Expenses.
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter un comparatif de périodes dans les Rapports (ex: ce mois vs mois dernier).
+- Envisager une fonctionnalité de "clôture de journée" qui archive les opérations du jour.

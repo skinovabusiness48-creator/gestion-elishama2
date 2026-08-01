@@ -23,6 +23,8 @@ import {
   Trophy,
   Anchor,
   CreditCard,
+  Calendar,
+  Clock,
   Receipt,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -181,7 +183,30 @@ export function Reports() {
     });
     const dailyChart = Array.from(byDay.values()).sort((a, b) => a.day.localeCompare(b.day));
 
-    return { revenue, count, avg, top5, best, worst, byPayment, dailyChart };
+    // Ventes par jour de la semaine (lundi-dimanche)
+    const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+    const byWeekday = new Map<string, number>();
+    sales.forEach((s) => {
+      const d = new Date(s.createdAt).getDay();
+      const name = dayNames[d];
+      byWeekday.set(name, (byWeekday.get(name) || 0) + s.total);
+    });
+    const weekdayChart = dayNames.slice(1).concat(dayNames[0]).map((name) => ({
+      name: name.slice(0, 3),
+      revenue: byWeekday.get(name) || 0,
+    }));
+    const bestWeekday = weekdayChart.reduce((best, d) => (d.revenue > best.revenue ? d : best), weekdayChart[0]);
+
+    // Ventes par heure (0-23)
+    const byHour = new Array(24).fill(0);
+    sales.forEach((s) => {
+      const h = new Date(s.createdAt).getHours();
+      byHour[h] += s.total;
+    });
+    const hourlyChart = byHour.map((revenue, h) => ({ hour: `${h}h`, revenue })).filter((d) => d.revenue > 0);
+    const peakHour = hourlyChart.reduce((best, d) => (d.revenue > best.revenue ? d : best), hourlyChart[0] || { hour: "—", revenue: 0 });
+
+    return { revenue, count, avg, top5, best, worst, byPayment, dailyChart, weekdayChart, bestWeekday, hourlyChart, peakHour };
   }, [sales, currency, dateFormat, getPaymentMethodName]);
 
   // -------- Expense stats --------
@@ -541,6 +566,77 @@ export function Reports() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Statistiques avancées */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Ventes par jour de la semaine */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" /> Ventes par jour de la semaine
+                </CardTitle>
+                {salesStats.bestWeekday && salesStats.bestWeekday.revenue > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Meilleur jour : <span className="font-semibold text-foreground">{salesStats.bestWeekday.name}</span> ({formatCurrency(salesStats.bestWeekday.revenue, currency)})
+                  </p>
+                )}
+              </CardHeader>
+              <CardContent>
+                {salesStats.weekdayChart.some((d) => d.revenue > 0) ? (
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={salesStats.weekdayChart} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 60)" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 60)" }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "oklch(0.52 0.02 60)" }} tickLine={false} axisLine={false} width={48} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, color: "var(--popover-foreground)" }}
+                          formatter={(value: number) => [formatCurrency(value, currency), "CA"]}
+                        />
+                        <Bar dataKey="revenue" fill="oklch(0.62 0.17 45)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">Aucune vente sur la période</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Ventes par heure */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" /> Ventes par heure
+                </CardTitle>
+                {salesStats.peakHour && salesStats.peakHour.revenue > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Heure de pointe : <span className="font-semibold text-foreground">{salesStats.peakHour.hour}</span> ({formatCurrency(salesStats.peakHour.revenue, currency)})
+                  </p>
+                )}
+              </CardHeader>
+              <CardContent>
+                {salesStats.hourlyChart.length > 0 ? (
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={salesStats.hourlyChart} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 60)" vertical={false} />
+                        <XAxis dataKey="hour" tick={{ fontSize: 11, fill: "oklch(0.52 0.02 60)" }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "oklch(0.52 0.02 60)" }} tickLine={false} axisLine={false} width={48} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, color: "var(--popover-foreground)" }}
+                          formatter={(value: number) => [formatCurrency(value, currency), "CA"]}
+                        />
+                        <Bar dataKey="revenue" fill="oklch(0.6 0.13 150)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">Aucune vente sur la période</p>
                 )}
               </CardContent>
             </Card>

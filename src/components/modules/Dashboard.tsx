@@ -63,12 +63,25 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
     const outOfStock = activeProducts.filter((p) => p.stock <= 0);
     const lowStock = activeProducts.filter((p) => p.stock > 0 && p.stock <= p.minStock);
     const profit = revenue - expensesTotal;
+    // Bénéfice d'hier pour comparaison
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdaySales = data.sales.filter((s) => isSameDay(s.createdAt, yesterday));
+    const yesterdayExpenses = data.expenses.filter((e) => isSameDay(e.date, yesterday));
+    const yesterdayRevenue = yesterdaySales.reduce((a, b) => a + b.total, 0);
+    const yesterdayExpensesTotal = yesterdayExpenses.reduce((a, b) => a + b.amount, 0);
+    const yesterdayProfit = yesterdayRevenue - yesterdayExpensesTotal;
+    const profitDiff = profit - yesterdayProfit;
+    const profitTrend: "up" | "down" | "neutral" = yesterdayProfit === 0 ? "neutral" : profitDiff > 0 ? "up" : profitDiff < 0 ? "down" : "neutral";
     return {
       revenue,
       salesCount: todaySales.length,
       ordersCount: todaySales.length,
       expensesTotal,
       profit,
+      yesterdayProfit,
+      profitDiff,
+      profitTrend,
       outOfStock,
       lowStock,
       activeProducts: activeProducts.length,
@@ -237,7 +250,15 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
               value={formatCurrency(stats.profit, currency)}
               icon={PiggyBank}
               tone={stats.profit >= 0 ? "primary" : "danger"}
-              hint="Ventes - Dépenses"
+              hint={
+                stats.profitTrend === "up"
+                  ? `↑ +${formatCurrency(stats.profitDiff, currency)} vs hier`
+                  : stats.profitTrend === "down"
+                  ? `↓ −${formatCurrency(Math.abs(stats.profitDiff), currency)} vs hier`
+                  : stats.yesterdayProfit > 0
+                  ? "Stable vs hier"
+                  : "Ventes - Dépenses"
+              }
             />
             <StatCard
               label="Commandes du jour"
