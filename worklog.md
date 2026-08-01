@@ -431,3 +431,68 @@ Task: QA + mode sombre + graphique Dashboard + polish styling
 - Ajouter des raccourcis clavier supplémentaires (V/P/T quand la palette est fermée).
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter une page d'aide / raccourcis clavier accessible via "?".
+
+---
+Task ID: 10
+Agent: webDevReview (cron round 3)
+Task: QA + aide/raccourcis clavier + polish styling
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.8s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+- Recommandations du round précédent à traiter : aide/raccourcis clavier, polish styling.
+
+## Modifications réalisées
+
+### 1. Système d'aide & raccourcis clavier — Feature majeure ⌨️
+- Créé `src/hooks/use-keyboard-shortcuts.ts` : hook global qui écoute `keydown` et déclenche :
+  * `?` (ou Shift+/) → ouvre l'aide
+  * `/` → ouvre la recherche (palette)
+  * `1`-`9`, `0` → navigation rapide vers les 10 modules
+  * Lettres mnémoniques : `G` (dashboard), `V` (ventes), `T` (tickets), `P` (produits), `S` (stock), `C` (caisse), `D` (dépenses), `R` (rapports), `H` (historique)
+  * Désactivé quand l'utilisateur tape dans un champ (input/textarea/select/contenteditable) ou avec modificateurs (Ctrl/Cmd/Alt).
+- Créé `src/components/HelpDialog.tsx` : dialogue d'aide complet avec 3 sections :
+  * **Général** : ⌘K (recherche), / (recherche), ? (aide), Échap (fermer)
+  * **Navigation rapide (chiffres)** : 1-9, 0 → les 10 modules, cliquable pour naviguer
+  * **Navigation mnémonique (lettres)** : G, V, T, P, S, C, D, R, H
+  * **À propos** : logo + nom + rappel "100% local, hors ligne, exportez régulièrement"
+  * Composant `Kbd` réutilisable pour afficher les touches avec style.
+- Modifié `src/components/AppShell.tsx` :
+  * Importé `HelpDialog` + `useKeyboardShortcuts` + icône `HelpCircle`.
+  * Ajouté état `helpOpen` + câblage du hook `useKeyboardShortcuts({ onNavigate, onHelp, onSearch })`.
+  * Bouton "Aide" (icône HelpCircle) ajouté dans le header desktop ET mobile.
+  * `<HelpDialog>` rendu à la fin du shell.
+  * Footer : ajout d'un bouton "Aide" avec kbd `?` (desktop uniquement) pour découvrir les raccourcis.
+
+### 2. Polish styling du Dashboard ✨
+- Modifié `src/components/modules/Dashboard.tsx` (WelcomePanel) :
+  * Hero card : dégradé enrichi (`from-primary/15 via-background to-accent/50`), ajout de **2 cercles flous décoratifs** (blur-3xl) en arrière-plan pour un effet "mesh gradient" moderne.
+  * Icône Sparkles : anneau `ring-4 ring-primary/10` autour pour la profondeur.
+  * Badge supplémentaire "100% local" ajouté à côté de "Bienvenue".
+  * Bouton CTA principal : `shadow-sm` pour plus de relief.
+  * Cartes-étapes : `hover:-translate-y-0.5` (soulèvement), icône `group-hover:scale-110 group-hover:bg-primary/15`, badge numéroté avec `ring-2 ring-card` pour l'effet "détourage".
+
+### 3. Polish footer
+- Modifié `src/components/AppShell.tsx` (footer) :
+  * Ajout d'un bouton "Aide" avec kbd `?` dans le footer desktop (découverte des raccourcis).
+  * Séparateur `·` entre l'aide et le texte "Données locales".
+  * Layout flex amélioré avec gap-2.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning (résolu l'erreur `no-assign-module-variable` en renommant la variable `module` → `targetModule`).
+- Serveur dev : HTTP 200, 69Ko (vs 65Ko avant), compile en 5.8s, 0 erreur.
+- Inspection HTML : tous les marqueurs présents — "Bienvenue", "Aide", "raccourcis", "100% local", "Premiers pas", "elishama-theme" (dark mode), "recharts" (graphique).
+- Fichiers créés : `HelpDialog.tsx` (6.8Ko), `use-keyboard-shortcuts.ts` (2.8Ko).
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante depuis le round 1). La QA visuelle interactive (clic sur bouton, bascule thème, ouverture palette) n'est pas possible depuis le cron ; seuls curl + inspection HTML sont utilisés. L'utilisateur peut vérifier visuellement via le Panneau de prévisualisation.
+- Les raccourcis clavier n'ont pas pu être testés interactivement (appuyer sur ?, /, 1-9, lettres). La logique est standard (event listener keydown + garde-fous sur les champs de saisie).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement les raccourcis clavier (?, /, chiffres, lettres mnémoniques) via le Panneau de prévisualisation.
+- Vérifier que les raccourcis lettres n'entrent pas en conflit avec des interactions futures (ex: recherche dans une table).
+- Envisager l'ajout d'un export PDF natif (actuellement window.print()).
+- Ajouter des indicateurs visuels de raccourcis sur les boutons de navigation de la sidebar (infobulles avec la touche).
+- Envisager une fonctionnalité de "favoris" pour les produits les plus vendus (accès rapide).

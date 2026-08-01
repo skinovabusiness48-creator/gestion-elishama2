@@ -491,15 +491,19 @@ function WelcomePanel({ onNavigate }: { onNavigate: (k: ModuleKey) => void }) {
   return (
     <div className="space-y-6">
       {/* Hero de bienvenue */}
-      <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-background to-accent/40">
-        <CardContent className="p-6 sm:p-8">
+      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-br from-primary/15 via-background to-accent/50">
+        {/* Décor : cercles flous ambre */}
+        <div className="pointer-events-none absolute -top-12 -right-12 h-48 w-48 rounded-full bg-primary/20 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-accent/40 blur-3xl" aria-hidden />
+        <CardContent className="relative p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 shrink-0">
+            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 shrink-0 ring-4 ring-primary/10">
               <Sparkles className="h-8 w-8 sm:h-10 sm:w-10" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <Badge className="bg-primary/15 text-primary border-0">Bienvenue</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary/80">100% local</Badge>
               </div>
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
                 Votre restaurant est prêt à démarrer
@@ -509,7 +513,7 @@ function WelcomePanel({ onNavigate }: { onNavigate: (k: ModuleKey) => void }) {
                 Toutes les données restent sur cet appareil, hors ligne. Commencez par ajouter vos produits.
               </p>
               <div className="flex flex-wrap gap-2 mt-4">
-                <Button onClick={() => onNavigate("products")} className="gap-2">
+                <Button onClick={() => onNavigate("products")} className="gap-2 shadow-sm">
                   <UtensilsCrossed className="h-4 w-4" /> Commencer par les produits
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -535,11 +539,11 @@ function WelcomePanel({ onNavigate }: { onNavigate: (k: ModuleKey) => void }) {
               <button
                 key={step.num}
                 onClick={() => onNavigate(step.module)}
-                className="group flex items-start gap-4 rounded-xl border border-border/60 bg-card p-4 sm:p-5 text-left transition-all hover:border-primary/40 hover:shadow-md"
+                className="group flex items-start gap-4 rounded-xl border border-border/60 bg-card p-4 sm:p-5 text-left transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5"
               >
-                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 transition-transform group-hover:scale-110 group-hover:bg-primary/15">
                   <Icon className="h-5 w-5" />
-                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-sm ring-2 ring-card">
                     {step.num}
                   </span>
                 </div>

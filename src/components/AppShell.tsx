@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { HelpDialog } from "@/components/HelpDialog";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import {
   LayoutDashboard,
   Receipt,
@@ -24,6 +26,7 @@ import {
   Flame,
   X,
   Search,
+  HelpCircle,
 } from "lucide-react";
 import type { ModuleKey } from "@/lib/types";
 import { useStore } from "@/lib/store";
@@ -130,6 +133,7 @@ export function AppShell({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const { data } = useStore();
   const name = data.settings.restaurant.name || "ELISHAMA";
 
@@ -138,6 +142,13 @@ export function AppShell({
     setMobileOpen(false);
     onSelect(k);
   };
+
+  // Raccourcis clavier globaux (?, /, chiffres, lettres mnémoniques)
+  useKeyboardShortcuts({
+    onNavigate: handleSelect,
+    onHelp: () => setHelpOpen(true),
+    onSearch: () => setSearchOpen(true),
+  });
 
   const currentItem = NAV_ITEMS.find((i) => i.key === current);
 
@@ -169,6 +180,9 @@ export function AppShell({
           <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setSearchOpen(true)} aria-label="Rechercher">
             <Search className="h-5 w-5" />
           </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setHelpOpen(true)} aria-label="Aide">
+            <HelpCircle className="h-5 w-5" />
+          </Button>
           <ThemeToggle className="h-9 w-9 shrink-0" />
         </header>
 
@@ -191,6 +205,16 @@ export function AppShell({
                 ⌘K
               </kbd>
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setHelpOpen(true)}
+              aria-label="Aide & raccourcis"
+              title="Aide & raccourcis (?)"
+            >
+              <HelpCircle className="h-[1.15rem] w-[1.15rem]" />
+            </Button>
             <ThemeToggle className="h-9 w-9" />
             <span className="hidden sm:inline">
               {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
@@ -205,12 +229,23 @@ export function AppShell({
 
         {/* Footer sticky */}
         <footer className="mt-auto border-t bg-background px-4 sm:px-6 py-3 text-xs text-muted-foreground no-print">
-          <div className="mx-auto w-full max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-1">
+          <div className="mx-auto w-full max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-2">
             <p className="flex items-center gap-1.5">
               <Flame className="h-3.5 w-3.5 text-primary" />
               <span className="font-medium text-foreground">{name}</span> — Gestion simple et efficace du restaurant
             </p>
-            <p>Données locales · Aucune connexion requise</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                title="Afficher l'aide"
+              >
+                <kbd className="inline-flex h-4 items-center rounded border bg-muted px-1 text-[10px] font-mono">?</kbd>
+                <span>Aide</span>
+              </button>
+              <span className="hidden sm:inline text-border">·</span>
+              <p>Données locales · Aucune connexion requise</p>
+            </div>
           </div>
         </footer>
       </div>
@@ -219,6 +254,13 @@ export function AppShell({
       <CommandPalette
         open={searchOpen}
         onOpenChange={setSearchOpen}
+        onNavigate={handleSelect}
+      />
+
+      {/* Dialogue d'aide & raccourcis (?) */}
+      <HelpDialog
+        open={helpOpen}
+        onOpenChange={setHelpOpen}
         onNavigate={handleSelect}
       />
     </div>
