@@ -2,23 +2,34 @@
 // ELISHAMA — Couche de stockage LocalStorage
 // ============================================================
 import type { AppData } from "./types";
-import { defaultData } from "./seed";
+import { defaultData, emptyData } from "./seed";
 
 const STORAGE_KEY = "elishama:data";
-const DATA_VERSION = 1;
+// Version 2 : supprime l'onboarding et les données de démo.
+// Toute donnée antérieure (version < 2) est réinitialisée vers un état propre.
+const DATA_VERSION = 2;
 
 export function loadData(): AppData {
-  if (typeof window === "undefined") return defaultData();
+  if (typeof window === "undefined") return emptyData();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+    // Pas de données → état propre fonctionnel (sans onboarding, sans démo)
     if (!raw) {
-      const fresh = defaultData();
+      const fresh = emptyData();
       saveData(fresh);
       return fresh;
     }
     const parsed = JSON.parse(raw) as AppData;
-    // Migration / garde-fou : s'assurer que toutes les collections existent
-    const base = defaultData();
+    // Migration : si la version stockée est ancienne (données de test/démo),
+    // on repart d'un état propre. Les vraies données utilisateur (version >= 2) sont conservées.
+    const storedVersion = parsed?.settings?.version ?? 1;
+    if (storedVersion < DATA_VERSION || !parsed?.settings?.initialized) {
+      const fresh = emptyData();
+      saveData(fresh);
+      return fresh;
+    }
+    // Garde-fou : s'assurer que toutes les collections existent
+    const base = emptyData();
     const merged: AppData = {
       ...base,
       ...parsed,
@@ -38,7 +49,7 @@ export function loadData(): AppData {
     return merged;
   } catch (e) {
     console.error("Erreur de chargement des données:", e);
-    const fresh = defaultData();
+    const fresh = emptyData();
     saveData(fresh);
     return fresh;
   }

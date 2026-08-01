@@ -23,7 +23,7 @@ export function defaultData(): AppData {
         stockAlertThreshold: 5,
       },
       initialized: false,
-      version: 1,
+      version: 2,
     },
     categories: [],
     products: [],
@@ -42,21 +42,55 @@ export function defaultData(): AppData {
 
 export function emptyData(): AppData {
   const data = defaultData();
+  const now = nowISO();
   data.settings.initialized = true;
-  // Configurations de base même pour une app vide
+  data.settings.version = 2;
+
+  // Modes de paiement de base (configurables par l'utilisateur ensuite)
   data.paymentMethods = [
-    { id: genId("pm"), name: "Espèces", active: true, order: 0, createdAt: nowISO(), updatedAt: nowISO() },
-    { id: genId("pm"), name: "Mobile Money", active: true, order: 1, createdAt: nowISO(), updatedAt: nowISO() },
-    { id: genId("pm"), name: "Carte", active: true, order: 2, createdAt: nowISO(), updatedAt: nowISO() },
+    { id: genId("pm"), name: "Espèces", active: true, order: 0, createdAt: now, updatedAt: now },
+    { id: genId("pm"), name: "Mobile Money", active: true, order: 1, createdAt: now, updatedAt: now },
+    { id: genId("pm"), name: "Carte", active: true, order: 2, createdAt: now, updatedAt: now },
   ];
+
+  // Catégories de dépenses de base (configurables)
   data.expenseCategories = [
-    { id: genId("ec"), name: "Achat de marchandises", order: 0, createdAt: nowISO(), updatedAt: nowISO() },
-    { id: genId("ec"), name: "Transport", order: 1, createdAt: nowISO(), updatedAt: nowISO() },
-    { id: genId("ec"), name: "Électricité", order: 2, createdAt: nowISO(), updatedAt: nowISO() },
-    { id: genId("ec"), name: "Eau", order: 3, createdAt: nowISO(), updatedAt: nowISO() },
-    { id: genId("ec"), name: "Entretien", order: 4, createdAt: nowISO(), updatedAt: nowISO() },
-    { id: genId("ec"), name: "Autres", order: 5, createdAt: nowISO(), updatedAt: nowISO() },
+    { id: genId("ec"), name: "Achat de marchandises", order: 0, createdAt: now, updatedAt: now },
+    { id: genId("ec"), name: "Transport", order: 1, createdAt: now, updatedAt: now },
+    { id: genId("ec"), name: "Électricité", order: 2, createdAt: now, updatedAt: now },
+    { id: genId("ec"), name: "Eau", order: 3, createdAt: now, updatedAt: now },
+    { id: genId("ec"), name: "Entretien", order: 4, createdAt: now, updatedAt: now },
+    { id: genId("ec"), name: "Salaires", order: 5, createdAt: now, updatedAt: now },
+    { id: genId("ec"), name: "Autres", order: 6, createdAt: now, updatedAt: now },
   ];
+
+  // Quelques zones et tables de base (configurables)
+  const zoneInterieur = { id: genId("zone"), name: "Intérieur", order: 0, createdAt: now, updatedAt: now };
+  const zonePleinAir = { id: genId("zone"), name: "Plein air", order: 1, createdAt: now, updatedAt: now };
+  const zoneComptoir = { id: genId("zone"), name: "Comptoir", order: 2, createdAt: now, updatedAt: now };
+  data.zones = [zoneInterieur, zonePleinAir, zoneComptoir];
+  data.tables = [
+    { id: genId("tbl"), name: "Table 1", zoneId: zoneInterieur.id, active: true, order: 0, createdAt: now, updatedAt: now },
+    { id: genId("tbl"), name: "Table 2", zoneId: zoneInterieur.id, active: true, order: 1, createdAt: now, updatedAt: now },
+    { id: genId("tbl"), name: "Table 3", zoneId: zoneInterieur.id, active: true, order: 2, createdAt: now, updatedAt: now },
+    { id: genId("tbl"), name: "Terrasse 1", zoneId: zonePleinAir.id, active: true, order: 0, createdAt: now, updatedAt: now },
+    { id: genId("tbl"), name: "Terrasse 2", zoneId: zonePleinAir.id, active: true, order: 1, createdAt: now, updatedAt: now },
+    { id: genId("tbl"), name: "Comptoir", zoneId: zoneComptoir.id, active: true, order: 0, createdAt: now, updatedAt: now },
+    { id: genId("tbl"), name: "À emporter", zoneId: zoneComptoir.id, active: true, order: 1, createdAt: now, updatedAt: now },
+  ];
+
+  // Historique initial
+  data.history = [
+    {
+      id: genId("hist"),
+      action: "create",
+      entity: "system",
+      entityId: "init",
+      label: "Application initialisée — données propres prêtes à l'emploi",
+      createdAt: now,
+    },
+  ];
+
   return data;
 }
 

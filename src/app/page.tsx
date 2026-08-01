@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { StoreProvider, useStore } from "@/lib/store";
+import { StoreProvider } from "@/lib/store";
 import { AppShell } from "@/components/AppShell";
-import { Onboarding } from "@/components/Onboarding";
 import { Dashboard } from "@/components/modules/Dashboard";
 import { Products } from "@/components/modules/Products";
 import { Stock } from "@/components/modules/Stock";
@@ -17,14 +16,7 @@ import { SettingsModule } from "@/components/modules/SettingsModule";
 import type { ModuleKey } from "@/lib/types";
 
 function AppContent() {
-  const { data } = useStore();
   const [current, setCurrent] = useState<ModuleKey>("dashboard");
-
-  // Onboarding au premier lancement
-  if (!data.settings.initialized) {
-    return <Onboarding />;
-  }
-
   const handleNavigate = (k: ModuleKey) => setCurrent(k);
 
   return (

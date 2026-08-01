@@ -155,7 +155,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setData(demoData());
   }, []);
   const resetAll = useCallback(() => {
-    const fresh = defaultData();
+    const fresh = emptyData();
     setData(fresh);
   }, []);
   const importData = useCallback((imported: AppData) => {
