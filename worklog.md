@@ -496,3 +496,64 @@ Task: QA + aide/raccourcis clavier + polish styling
 - Envisager l'ajout d'un export PDF natif (actuellement window.print()).
 - Ajouter des indicateurs visuels de raccourcis sur les boutons de navigation de la sidebar (infobulles avec la touche).
 - Envisager une fonctionnalité de "favoris" pour les produits les plus vendus (accès rapide).
+
+---
+Task ID: 11
+Agent: webDevReview (cron round 4)
+Task: QA + indicateurs raccourcis sidebar + favoris produits
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.5s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard + aide/raccourcis clavier (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+
+## Modifications réalisées
+
+### 1. Indicateurs visuels de raccourcis sur la sidebar ⌨️
+- Modifié `src/components/AppShell.tsx` :
+  * Ajout d'un champ `shortcut` (chiffre 1-9, 0) à chaque `NAV_ITEMS`.
+  * Chaque bouton de navigation affiche maintenant un `<kbd>` badge avec le chiffre du raccourci, positionné en absolu à droite.
+  * Le badge est **caché par défaut** (`opacity-0 scale-90`) et **apparaît au survol** (`group-hover:opacity-100 group-hover:scale-100`) avec une transition fluide.
+  * Style adaptatif : sur le bouton actif, le kbd utilise `border-white/30 bg-white/10 text-sidebar-primary-foreground` ; sur les autres, `border-sidebar-border bg-sidebar-accent text-sidebar-foreground/70`.
+  * Le badge stock faible (module Stock) se **cache au survol** (`group-hover:opacity-0 group-hover:scale-90`) pour laisser place au kbd — transition élégante.
+  * Ajout d'un `title` sur chaque bouton : "Tableau de bord (raccourci: 1)" etc. pour la découverte native via l'infobulle du navigateur.
+
+### 2. Fonctionnalité Favoris produits ⭐
+- Modifié `src/lib/types.ts` : ajout du champ optionnel `favorite?: boolean` à l'interface `Product` (rétro-compatible : les produits existants ont `undefined` = non favori).
+- Modifié `src/lib/store.tsx` :
+  * Ajout de `toggleFavorite(id)` à l'interface `StoreContextValue` et son implémentation (toggle `favorite` + `updatedAt`).
+  * Ajout au contexte `value` pour exposer la méthode via `useStore()`.
+- Modifié `src/components/modules/Products.tsx` :
+  * Import de l'icône `Star` et de `cn` depuis `@/lib/utils`.
+  * Ajout de `toggleFavorite` au destructuring du store.
+  * Nouvel état `favoritesOnly` (booléen) pour filtrer les favoris.
+  * `filteredProducts` : prend en compte `favoritesOnly` (n'affiche que les `p.favorite` si activé).
+  * `stats` : ajout d'un compteur `favorites` (produits favoris non archivés).
+  * **Stats cards** : passage à une grille 5 colonnes (`lg:grid-cols-5`) avec ajout d'une carte "Favoris" (icône Star, tone warning, hint "Accès rapide").
+  * **Bouton filtre Favoris** : bouton toggle sous les filtres, avec icône Star (remplie si actif), badge compteur, variant `default` quand actif / `outline` sinon.
+  * **Tableau desktop** : étoile cliquable en overlay sur l'image/icône du produit (bouton absolu -top-1.5 -right-1.5), étoile ambre remplie si favori, étoile muted sinon. Étoile aussi affichée à côté du nom du produit si favori.
+  * **Cartes mobile** : même étoile cliquable en overlay + étoile à côté du nom.
+  * **Menu d'actions** (ProductActions) : ajout d'un item "Ajouter/Retirer des favoris" avec icône Star (remplie ambre si favori).
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 72Ko (vs 69Ko avant), compile en 5.5s, 0 erreur.
+- Inspection HTML (page d'accueil / Dashboard) :
+  * Raccourcis sidebar présents : `title="Tableau de bord (raccourci: 1)"` ... `title="Paramètres (raccourci: 0)"` ✅
+  * `<kbd>` badges avec les chiffres 1-9, 0, cachés par défaut (`opacity-0`) et visibles au survol (`group-hover:opacity-100`) ✅
+  * Badge stock faible avec `group-hover:opacity-0` (se cache au survol) ✅
+  * Boutons Aide + ThemeToggle + Rechercher présents dans les headers ✅
+- Le module Produits (avec favoris) n'est pas visible sur la page d'accueil (Dashboard) — comportement attendu. Les favoris apparaissent en naviguant vers Produits (raccourci `4`).
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). QA visuelle interactive impossible depuis le cron.
+- Les favoris n'ont pas pu être testés interactivement (clic sur l'étoile, filtre favoris). La logique est standard (toggle booléen + filtrage).
+- Le champ `favorite` est optionnel — les produits créés avant cette mise à jour auront `undefined` (traité comme `false` partout).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement les favoris via le Panneau de prévisualisation (naviguer vers Produits, cliquer sur les étoiles, filtrer).
+- Envisager d'ajouter une section "Favoris" en haut du module Ventes pour un accès rapide aux produits les plus utilisés.
+- Ajouter un tri par favoris (les favoris en premier) dans la liste des produits.
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter des infobulles (tooltips shadcn) sur les boutons d'action pour améliorer la découverte.

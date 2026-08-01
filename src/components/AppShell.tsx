@@ -35,19 +35,20 @@ interface NavItem {
   key: ModuleKey;
   label: string;
   icon: typeof LayoutDashboard;
+  shortcut: string; // touche de raccourci (chiffre)
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { key: "sales", label: "Ventes", icon: Receipt },
-  { key: "tickets", label: "Tickets", icon: Ticket },
-  { key: "products", label: "Produits", icon: UtensilsCrossed },
-  { key: "stock", label: "Stock", icon: Package },
-  { key: "cash", label: "Caisse", icon: Banknote },
-  { key: "expenses", label: "Dépenses", icon: Wallet },
-  { key: "reports", label: "Rapports", icon: BarChart3 },
-  { key: "history", label: "Historique", icon: History },
-  { key: "settings", label: "Paramètres", icon: Settings },
+  { key: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, shortcut: "1" },
+  { key: "sales", label: "Ventes", icon: Receipt, shortcut: "2" },
+  { key: "tickets", label: "Tickets", icon: Ticket, shortcut: "3" },
+  { key: "products", label: "Produits", icon: UtensilsCrossed, shortcut: "4" },
+  { key: "stock", label: "Stock", icon: Package, shortcut: "5" },
+  { key: "cash", label: "Caisse", icon: Banknote, shortcut: "6" },
+  { key: "expenses", label: "Dépenses", icon: Wallet, shortcut: "7" },
+  { key: "reports", label: "Rapports", icon: BarChart3, shortcut: "8" },
+  { key: "history", label: "Historique", icon: History, shortcut: "9" },
+  { key: "settings", label: "Paramètres", icon: Settings, shortcut: "0" },
 ];
 
 function SidebarContent({
@@ -80,10 +81,12 @@ function SidebarContent({
           {NAV_ITEMS.map((item) => {
             const active = current === item.key;
             const Icon = item.icon;
+            const hasStockBadge = item.key === "stock" && lowStock > 0;
             return (
               <li key={item.key} className="relative">
                 <button
                   onClick={() => onSelect(item.key)}
+                  title={`${item.label} (raccourci: ${item.shortcut})`}
                   className={cn(
                     "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all text-left group",
                     active
@@ -93,14 +96,24 @@ function SidebarContent({
                 >
                   <Icon className={cn("h-4.5 w-4.5 shrink-0 transition-transform", !active && "group-hover:scale-110")} />
                   <span className="flex-1 truncate">{item.label}</span>
-                  {item.key === "stock" && lowStock > 0 && (
+                  {/* Badge stock faible (visible sauf au survol) */}
+                  {hasStockBadge && (
                     <span className={cn(
-                      "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-colors",
+                      "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-all group-hover:opacity-0 group-hover:scale-90",
                       active ? "bg-white/25 text-white" : "bg-amber-500 text-white"
                     )}>
                       {lowStock}
                     </span>
                   )}
+                  {/* Raccourci clavier (visible au survol) */}
+                  <kbd className={cn(
+                    "absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 text-[10px] font-mono font-semibold opacity-0 scale-90 transition-all group-hover:opacity-100 group-hover:scale-100 pointer-events-none",
+                    active
+                      ? "border-white/30 bg-white/10 text-sidebar-primary-foreground"
+                      : "border-sidebar-border bg-sidebar-accent text-sidebar-foreground/70"
+                  )}>
+                    {item.shortcut}
+                  </kbd>
                 </button>
               </li>
             );

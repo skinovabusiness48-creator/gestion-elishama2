@@ -16,6 +16,7 @@ import {
   Money,
 } from "@/components/shared";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,7 @@ import {
   Tag,
   ImageIcon,
   X,
+  Star,
 } from "lucide-react";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import type { Product, Category } from "@/lib/types";
@@ -124,6 +126,7 @@ export function Products() {
     deleteProduct,
     archiveProduct,
     duplicateProduct,
+    toggleFavorite,
     adjustStock,
     setProductStock,
     addCategory,
@@ -139,6 +142,7 @@ export function Products() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   // ---- Dialog Produit (ajout/édition) ----
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -180,9 +184,10 @@ export function Products() {
       if (q && !p.name.toLowerCase().includes(q)) return false;
       if (categoryFilter !== "all" && p.categoryId !== categoryFilter) return false;
       if (statusFilter !== "all" && getProductStatus(p) !== statusFilter) return false;
+      if (favoritesOnly && !p.favorite) return false;
       return true;
     });
-  }, [data.products, search, categoryFilter, statusFilter]);
+  }, [data.products, search, categoryFilter, statusFilter, favoritesOnly]);
 
   // ---- Stats ----
   const stats = useMemo(() => {
@@ -190,12 +195,14 @@ export function Products() {
     const inactive = data.products.filter((p) => !p.archived && !p.active);
     const archived = data.products.filter((p) => p.archived);
     const onMenu = data.products.filter((p) => p.onMenu && !p.archived);
+    const favorites = data.products.filter((p) => p.favorite && !p.archived);
     return {
       total: data.products.length,
       active: active.length,
       inactive: inactive.length,
       archived: archived.length,
       onMenu: onMenu.length,
+      favorites: favorites.length,
       categories: data.categories.length,
     };
   }, [data.products, data.categories]);
@@ -426,11 +433,12 @@ export function Products() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <StatCard label="Produits actifs" value={stats.active} icon={UtensilsCrossed} tone="success" hint={`${stats.total} au total`} />
         <StatCard label="Au menu" value={stats.onMenu} icon={MenuIcon} tone="primary" hint="Disponibles à la vente" />
-        <StatCard label="Inactifs" value={stats.inactive} icon={Power} tone="warning" />
-        <StatCard label="Catégories" value={stats.categories} icon={Tag} tone="default" hint={`${stats.archived} produit(s) archivé(s)`} />
+        <StatCard label="Favoris" value={stats.favorites} icon={Star} tone="warning" hint="Accès rapide" />
+        <StatCard label="Inactifs" value={stats.inactive} icon={Power} tone="default" />
+        <StatCard label="Catégories" value={stats.categories} icon={Tag} tone="default" hint={`${stats.archived} archivé(s)`} />
       </div>
 
       <Tabs defaultValue="products" className="space-y-4">
@@ -464,6 +472,23 @@ export function Products() {
                     <SelectItem value="archived">Archivés</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              {/* Bouton Favoris */}
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  variant={favoritesOnly ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFavoritesOnly((v) => !v)}
+                  className="gap-1.5"
+                >
+                  <Star className={cn("h-3.5 w-3.5", favoritesOnly && "fill-current")} />
+                  Favoris
+                  {stats.favorites > 0 && (
+                    <Badge variant={favoritesOnly ? "secondary" : "outline"} className="ml-1 px-1.5 py-0 text-[10px]">
+                      {stats.favorites}
+                    </Badge>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -503,16 +528,28 @@ export function Products() {
                           <TableRow key={p.id} className="hover:bg-muted/40">
                             <TableCell>
                               <div className="flex items-center gap-3">
-                                {p.image ? (
-                                   
-                                  <img src={p.image} alt={p.name} className="h-10 w-10 rounded-md object-cover border" />
-                                ) : (
-                                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                                    <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                )}
+                                <div className="relative shrink-0">
+                                  {p.image ? (
+                                    <img src={p.image} alt={p.name} className="h-10 w-10 rounded-md object-cover border" />
+                                  ) : (
+                                    <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                                      <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={() => toggleFavorite(p.id)}
+                                    className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-card border border-border shadow-sm hover:scale-110 transition-transform"
+                                    title={p.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                                    aria-label={p.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                                  >
+                                    <Star className={cn("h-3 w-3", p.favorite ? "fill-amber-400 text-amber-400" : "text-muted-foreground")} />
+                                  </button>
+                                </div>
                                 <div className="min-w-0">
-                                  <p className="font-medium truncate">{p.name}</p>
+                                  <p className="font-medium truncate flex items-center gap-1.5">
+                                    {p.name}
+                                    {p.favorite && <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />}
+                                  </p>
                                   <p className="text-xs text-muted-foreground">{p.unit}{p.onMenu ? " · 📋 Menu" : ""}</p>
                                 </div>
                               </div>
@@ -538,6 +575,7 @@ export function Products() {
                                 onView={() => setViewProductId(p.id)}
                                 onEdit={() => openEditProduct(p)}
                                 onDuplicate={() => handleDuplicate(p.id)}
+                                onToggleFavorite={() => toggleFavorite(p.id)}
                                 onToggleActive={() => handleToggleActive(p)}
                                 onToggleMenu={() => handleToggleMenu(p)}
                                 onToggleArchive={() => handleToggleArchive(p)}
@@ -563,22 +601,35 @@ export function Products() {
                     <Card key={p.id} className="border-border/60">
                       <CardContent className="p-3">
                         <div className="flex items-start gap-3">
-                          {p.image ? (
-                             
-                            <img src={p.image} alt={p.name} className="h-12 w-12 rounded-md object-cover border shrink-0" />
-                          ) : (
-                            <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center shrink-0">
-                              <UtensilsCrossed className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                          )}
+                          <div className="relative shrink-0">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="h-12 w-12 rounded-md object-cover border" />
+                            ) : (
+                              <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center">
+                                <UtensilsCrossed className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <button
+                              onClick={() => toggleFavorite(p.id)}
+                              className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-card border border-border shadow-sm hover:scale-110 transition-transform"
+                              title={p.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                              aria-label={p.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                            >
+                              <Star className={cn("h-3.5 w-3.5", p.favorite ? "fill-amber-400 text-amber-400" : "text-muted-foreground")} />
+                            </button>
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="font-semibold truncate">{p.name}</p>
+                              <p className="font-semibold truncate flex items-center gap-1.5">
+                                {p.name}
+                                {p.favorite && <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />}
+                              </p>
                               <ProductActions
                                 product={p}
                                 onView={() => setViewProductId(p.id)}
                                 onEdit={() => openEditProduct(p)}
                                 onDuplicate={() => handleDuplicate(p.id)}
+                                onToggleFavorite={() => toggleFavorite(p.id)}
                                 onToggleActive={() => handleToggleActive(p)}
                                 onToggleMenu={() => handleToggleMenu(p)}
                                 onToggleArchive={() => handleToggleArchive(p)}
@@ -994,6 +1045,7 @@ function ProductActions({
   onView,
   onEdit,
   onDuplicate,
+  onToggleFavorite,
   onToggleActive,
   onToggleMenu,
   onToggleArchive,
@@ -1006,6 +1058,7 @@ function ProductActions({
   onView: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
+  onToggleFavorite: () => void;
   onToggleActive: () => void;
   onToggleMenu: () => void;
   onToggleArchive: () => void;
@@ -1031,6 +1084,10 @@ function ProductActions({
           <DropdownMenuItem onClick={onView}><Eye className="h-4 w-4" /> Voir détails</DropdownMenuItem>
           <DropdownMenuItem onClick={onEdit}><Pencil className="h-4 w-4" /> Modifier</DropdownMenuItem>
           <DropdownMenuItem onClick={onDuplicate}><Copy className="h-4 w-4" /> Dupliquer</DropdownMenuItem>
+          <DropdownMenuItem onClick={onToggleFavorite}>
+            <Star className={cn("h-4 w-4", product.favorite && "fill-amber-400 text-amber-400")} />
+            {product.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={onStockAdjust}><SlidersHorizontal className="h-4 w-4" /> Corriger le stock</DropdownMenuItem>
           <DropdownMenuItem onClick={onToggleMenu}>

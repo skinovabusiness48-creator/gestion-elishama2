@@ -45,6 +45,7 @@ export interface Product {
   active: boolean;
   onMenu: boolean;
   archived: boolean;
+  favorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }

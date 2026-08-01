@@ -48,6 +48,7 @@ interface StoreContextValue {
   deleteProduct: (id: string) => void;
   archiveProduct: (id: string, archived: boolean) => void;
   duplicateProduct: (id: string) => void;
+  toggleFavorite: (id: string) => void;
   adjustStock: (id: string, delta: number, reason: string, type: "in" | "out" | "adjust") => void;
   setProductStock: (id: string, newStock: number, reason: string) => void;
 
@@ -261,6 +262,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
     pushHistory({ action: "create", entity: "product", entityId: id, label: `Produit dupliqué` });
   }, [pushHistory]);
+
+  const toggleFavorite = useCallback((id: string) => {
+    setData((d) => ({
+      ...d,
+      products: d.products.map((p) =>
+        p.id === id ? { ...p, favorite: !p.favorite, updatedAt: nowISO() } : p
+      ),
+    }));
+  }, []);
 
   const adjustStock = useCallback((id: string, delta: number, reason: string, type: "in" | "out" | "adjust") => {
     setData((d) => {
@@ -611,6 +621,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     deleteProduct,
     archiveProduct,
     duplicateProduct,
+    toggleFavorite,
     adjustStock,
     setProductStock,
     addPaymentMethod,
