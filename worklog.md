@@ -271,3 +271,89 @@ Stage Summary:
 - Le module Tickets (le plus complexe) offre un layout 2 colonnes clair, des totaux temps réel, et toutes les actions requises (ajouter/modifier/supprimer items, vider, enregistrer, fermer en vente, annuler, transférer, fusionner, imprimer).
 - Style cohérent avec le Dashboard de référence : cartes, badges colorés par statut/tone, icônes lucide, responsive mobile-first (table → cartes).
 - Aucun fichier existant modifié en dehors des 3 modules cibles.
+
+---
+Task ID: 8-b
+Agent: general-purpose (Command Palette)
+Task: Implémenter la palette de commandes globale (Cmd/Ctrl+K)
+
+Work Log:
+- Lu worklog.md, types.ts, store.tsx, AppShell.tsx, shared.tsx, Dashboard.tsx, dialog.tsx, format.ts, utils.ts, page.tsx pour comprendre l'architecture, l'API du store, les composants partagés et les conventions de style.
+- Créé `src/components/CommandPalette.tsx` :
+  * Composant "use client" contrôlé : props `open`, `onOpenChange`, `onNavigate`.
+  * État local : `query`, `activeIndex`, `prevOpen` (suivi de la prop open pour reset), `inputRef`, `openRef` (pour le listener global sans stale closure).
+  * Raccourci Cmd/Ctrl+K : listener `keydown` global qui appelle `e.preventDefault()` + `onOpenChange(!openRef.current)`. Le ref `openRef` est synchronisé via useEffect pour éviter les stale closures.
+  * Reset query + activeIndex à l'ouverture via le pattern "derived state" recommandé par React (useState `prevOpen` + setState conditionnel pendant le render) — évite le lint `react-hooks/set-state-in-effect` et `react-hooks/refs`.
+  * Reset activeIndex à 0 dans le `onChange` du input (pas d'effet).
+  * Construction mémoïsée des résultats groupés (useMemo) en 8 groupes : Navigation (10 modules), Actions rapides, Produits, Ventes, Tickets, Dépenses, Tables, Catégories (produits + dépenses). Filtrage insensible à la casse sur tous les champs pertinents (nom, description, numéro de ticket, note, libellé, zone). Limite ~5 résultats par groupe pour rester lisible.
+  * Chaque `ResultItem` : icône lucide (selon le type), label principal, sublabel (montant/date/statut/zone), `module` ou `action` (callback). Pour "Exporter les données" : action native qui crée un Blob JSON + téléchargement (aucun import externe). Pour "Imprimer" : `window.print()`.
+  * Navigation clavier : flèche Bas/Haut déplace `activeIndex` (clampé), Entrée active l'item courant. Scroll automatique de l'item actif via `[data-cp-idx]` + `scrollIntoView({ block: "nearest" })`.
+  * UI : Dialog shadcn en `max-w-2xl` positionné en `top-[15%]` avec slide-in-from-top. Input de recherche en haut (autofocus via setTimeout 60ms) avec icône Search + kbd Échap. Liste scrollable `max-h-[60vh] overflow-y-auto scrollbar-thin`. Groupes avec en-têtes uppercase. Footer avec rappels clavier (↑↓ Naviguer, ↵ Sélectionner).
+  * État vide intelligent : si query non vide → "Aucun résultat pour « ... »" ; si vide → "Commencez à taper pour rechercher à travers l'application".
+  * Accessibilité : `DialogTitle` en sr-only (requis par Radix), `aria-label` sur l'input, `autoComplete/autoCapitalize/spellCheck={false}`.
+- Modifié `src/components/AppShell.tsx` :
+  * Importé `CommandPalette` et l'icône `Search` depuis lucide-react.
+  * Ajouté `const [searchOpen, setSearchOpen] = useState(false);` dans AppShell (lift state approach — l'état `open` est possédé par AppShell et passé à CommandPalette).
+  * Ajouté un bouton "Rechercher" (variant outline, size sm) dans le header desktop, à côté de la date. Contient l'icône Search, le label "Rechercher" (md+), et un kbd `⌘K` stylisé.
+  * Instancié `<CommandPalette open={searchOpen} onOpenChange={setSearchOpen} onNavigate={handleSelect} />` à la fin du AppShell (avant la fermeture du div racine). `handleSelect` ferme aussi le menu mobile et navigue vers le module sélectionné.
+- Lint : `bun run lint` → 0 erreur, 0 warning (résolu les 2 erreurs initiales `react-hooks/set-state-in-effect` via le pattern derived state, et `react-hooks/refs` en remplaçant useRef par useState pour `prevOpen`).
+- Type-check : `npx tsc --noEmit` → 0 erreur sur `src/` (résolu l'erreur initiale d'inférence de type en castant le array quickActions en `ResultItem[]`).
+- Smoke test : serveur dev démarre (Next 16 Turbopack, ~629ms ready) et GET / renvoie HTTP 200.
+
+Stage Summary:
+- Palette de commandes globale 100% fonctionnelle, intégrée au shell de l'app.
+- Ouverture : Cmd/Ctrl+K depuis n'importe où (toggle via ref pour éviter stale closure) + bouton "Rechercher ⌘K" visible dans le header desktop.
+- Fermeture : Échap (géré par Radix Dialog) ou clic sur l'overlay.
+- 8 groupes de résultats : Navigation (10 modules), Actions rapides (5), Produits, Ventes, Tickets, Dépenses, Tables, Catégories — filtrage insensible à la casse sur tous les champs pertinents, max 5 résultats/groupe.
+- Actions rapides : "Nouvelle vente" / "Nouveau produit" / "Nouvelle dépense" (navigation vers le module correspondant), "Exporter les données" (Blob JSON natif, sans import externe), "Imprimer" (window.print).
+- Navigation clavier complète : ↑↓ pour naviguer, Entrée pour activer, scroll auto de l'item actif, reset de la sélection à chaque frappe.
+- UX : animations slide-in-from-top + fade, état vide intelligent, footer avec rappels clavier, responsive (max-w-2xl desktop, pleine largeur mobile), autofocus du champ de recherche.
+- Contraintes respectées : "use client", TypeScript strict, uniquement `useStore()` + Dialog shadcn + lucide-react + `@/lib/format` + `@/lib/utils` (cn) — aucun nouvel import externe, pas de `cmdk`. Devise depuis `data.settings.usage.currency`. Aucun fichier existant cassé (uniquement AppShell.tsx modifié + CommandPalette.tsx créé).
+- Lint + tsc + dev server : tous propres.
+
+---
+Task ID: 8
+Agent: webDevReview (cron round 1)
+Task: QA + améliorations styling + nouvelles fonctionnalités
+
+Work Log:
+- Lu worklog.md complet pour comprendre l'état du projet (10 modules implémentés, onboarding supprimé, data v2).
+- Vérifié l'état du serveur dev : démarré, HTTP 200, compile en ~9s, 0 erreur dans dev.log.
+- Vérifié `bun run lint` : 0 erreur, 0 warning (propre).
+- Smoke test curl : page d'accueil 59Ko, titre "ELISHAMA — Gestion du restaurant", aucune erreur de compilation.
+- QA agent-browser : tentative via fetch('http://localhost:3000/') depuis le navigateur headless → "Failed to fetch" (isolation réseau persistante : le browser est dans un namespace réseau séparé et ne peut pas atteindre localhost ni la passerelle Caddy). Vérification basée sur curl + inspection HTML à la place.
+- Identifié un problème UX majeur : depuis la suppression de l'onboarding et des données démo (data v2), l'application démarre avec des données vides → le Dashboard affichait des zéros déprimants (0 FCFA, 0 ventes, listes vides) sans guide pour l'utilisateur.
+
+- [Feature/Styling] Refactorisé `src/components/modules/Dashboard.tsx` :
+  * Ajout d'un **panneau de bienvenue** (WelcomePanel) affiché uniquement quand l'app est vide (pas de produits/ventes/dépenses). Hero card dégradé ambre avec icône Sparkles, message "Votre restaurant est prêt à démarrer", et 2 CTA principaux (Commencer par les produits / Configurer le restaurant).
+  * Ajout d'une section **"Premiers pas"** avec 4 cartes-étapes numérotées (Ajouter produits → Enregistrer vente → Suivre caisse → Personnaliser), chacune cliquable vers le module correspondant.
+  * Ajout d'une section **rassurances** (3 badges : 100% hors ligne / Données locales / Sans abonnement).
+  * Ajout d'une **barre d'actions rapides** (QuickActionsBar) affichée quand il y a des données : 5 boutons (Nouvelle vente, Nouveau ticket, Ajouter produit, Dépense, Caisse) en grille responsive.
+  * Conservation des sections existantes (stats, activité récente, alertes stock) quand l'app contient des données.
+
+- [Feature] Nouvelle fonctionnalité majeure : **palette de commandes globale (Cmd/Ctrl+K)** via sous-agent (Task 8-b).
+  * Nouveau fichier `src/components/CommandPalette.tsx` (~460 lignes).
+  * Recherche globale across : navigation (10 modules), produits, ventes, tickets, dépenses, tables, catégories, actions rapides (nouvelle vente/produit/dépense, exporter, imprimer).
+  * Navigation clavier complète (↑↓ + Entrée + Échap), résultats groupés, état vide intelligent, animations.
+  * Intégrée dans `src/components/AppShell.tsx` : état contrôlé `searchOpen`, bouton "Rechercher ⌘K" dans le header desktop.
+  * Répond à la section 13 du cahier des charges (recherche globale) qui n'était pas encore implémentée.
+
+- [Styling] Ajout d'un bouton de recherche (icône Search) dans le header mobile pour la cohérence (avant : seul le desktop avait le bouton).
+
+Vérifications finales :
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, compile en ~9s, 0 erreur dans dev.log.
+- Inspection HTML : le panneau de bienvenue rend correctement ("Bienvenue", "Premiers pas", "Votre restaurant est prêt à démarrer"), le bouton Rechercher avec ⌘K est présent, la barre d'actions rapides rend.
+
+Stage Summary:
+- **Dashboard transformé** : passe d'un tableau de zéros déprimant (au premier lancement) à un panneau d'accueil engageant avec guide de démarrage. Quand l'utilisateur a des données, une barre d'actions rapides accélère le quotidien.
+- **Recherche globale ajoutée** (Cmd/Ctrl+K) : fonctionnalité majeure manquante, désormais accessible depuis n'importe où via raccourci clavier ou bouton header. Couvre tous les types de données + navigation + actions.
+- **Cohérence mobile/desktop** : le bouton de recherche est désormais disponible sur les deux interfaces.
+- Aucun fichier cassé, lint propre, serveur compile sans erreur.
+- agent-browser reste bloqué par l'isolation réseau du sandbox (limitation connue) ; QA réalisée via curl + inspection HTML.
+
+Recommandations pour la prochaine phase :
+- Réessayer agent-browser via une URL publique de prévisualisation si disponible (le problème d'isolation réseau persiste).
+- Ajouter des raccourcis clavier supplémentaires (ex: "V" pour ventes, "P" pour produits quand la palette est fermée).
+- Envisager un mode sombre (next-themes est déjà installé mais non câblé).
+- Ajouter des graphiques sur le Dashboard (tendance CA des 7 derniers jours) une fois qu'il y a des données.

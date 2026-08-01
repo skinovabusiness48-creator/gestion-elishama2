@@ -20,6 +20,15 @@ import {
   ArrowDownRight,
   Plus,
   History as HistoryIcon,
+  UtensilsCrossed,
+  Banknote,
+  Wallet as WalletIcon,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  ShoppingCart,
+  ClipboardList,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +78,9 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
     return items.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
   }, [data]);
 
+  // Détermine si c'est un premier lancement (pas de produits ni ventes)
+  const isEmpty = stats.activeProducts === 0 && data.sales.length === 0 && data.expenses.length === 0;
+
   return (
     <div>
       <PageHeader
@@ -82,137 +94,303 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
         }
       />
 
-      {/* Stats principales */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <StatCard
-          label="Chiffre d'affaires du jour"
-          value={formatCurrency(stats.revenue, currency)}
-          icon={TrendingUp}
-          tone="success"
-          hint={`${stats.salesCount} vente(s)`}
-        />
-        <StatCard
-          label="Dépenses du jour"
-          value={formatCurrency(stats.expensesTotal, currency)}
-          icon={Wallet}
-          tone="danger"
-          hint="Total dépensé aujourd'hui"
-        />
-        <StatCard
-          label="Bénéfice estimé"
-          value={formatCurrency(stats.profit, currency)}
-          icon={PiggyBank}
-          tone={stats.profit >= 0 ? "primary" : "danger"}
-          hint="Ventes - Dépenses"
-        />
-        <StatCard
-          label="Commandes du jour"
-          value={stats.ordersCount}
-          icon={Receipt}
-          tone="default"
-          hint={`${stats.openTickets} ticket(s) ouvert(s)`}
-        />
-      </div>
+      {/* Panneau de bienvenue au premier lancement */}
+      {isEmpty ? (
+        <WelcomePanel onNavigate={onNavigate} />
+      ) : (
+        <>
+          {/* Barre d'actions rapides */}
+          <QuickActionsBar onNavigate={onNavigate} />
 
-      {/* Stats secondaires */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <StatCard label="Produits actifs" value={stats.activeProducts} icon={Package} tone="default" />
-        <StatCard label="En rupture" value={stats.outOfStock.length} icon={PackageX} tone="danger" hint={stats.outOfStock.slice(0, 2).map((p) => p.name).join(", ") || "Aucune"} />
-        <StatCard label="Stock faible" value={stats.lowStock.length} icon={AlertTriangle} tone="warning" hint={stats.lowStock.slice(0, 2).map((p) => p.name).join(", ") || "Aucun"} />
-        <StatCard label="Tickets ouverts" value={stats.openTickets} icon={TicketIcon} tone="primary" />
-      </div>
+          {/* Stats principales */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <StatCard
+              label="Chiffre d'affaires du jour"
+              value={formatCurrency(stats.revenue, currency)}
+              icon={TrendingUp}
+              tone="success"
+              hint={`${stats.salesCount} vente(s)`}
+            />
+            <StatCard
+              label="Dépenses du jour"
+              value={formatCurrency(stats.expensesTotal, currency)}
+              icon={Wallet}
+              tone="danger"
+              hint="Total dépensé aujourd'hui"
+            />
+            <StatCard
+              label="Bénéfice estimé"
+              value={formatCurrency(stats.profit, currency)}
+              icon={PiggyBank}
+              tone={stats.profit >= 0 ? "primary" : "danger"}
+              hint="Ventes - Dépenses"
+            />
+            <StatCard
+              label="Commandes du jour"
+              value={stats.ordersCount}
+              icon={Receipt}
+              tone="default"
+              hint={`${stats.openTickets} ticket(s) ouvert(s)`}
+            />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Activité récente */}
-        <Card className="lg:col-span-2 border-border/60">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <HistoryIcon className="h-4 w-4 text-primary" /> Activité récente
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate("history")} className="text-xs">
-              Tout voir
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            {recentActivity.length === 0 ? (
-              <EmptyState title="Aucune activité" description="Les ventes, dépenses et modifications apparaîtront ici." />
-            ) : (
-              <ul className="divide-y divide-border max-h-[28rem] overflow-y-auto scrollbar-thin">
-                {recentActivity.map((item) => (
-                  <li key={`${item.type}-${item.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
-                    <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${
-                        item.tone === "success"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : item.tone === "danger"
-                          ? "bg-red-100 text-red-700"
-                          : item.tone === "primary"
-                          ? "bg-primary/15 text-primary"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {item.amount !== undefined ? (
-                        item.amount >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />
-                      ) : (
-                        <Package className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.label}</p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(item.date)}</p>
-                    </div>
-                    {item.amount !== undefined && (
-                      <span className={`text-sm font-semibold ${item.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {item.amount >= 0 ? "+" : ""}
-                        <Money amount={item.amount} currency={currency} />
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+          {/* Stats secondaires */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <StatCard label="Produits actifs" value={stats.activeProducts} icon={Package} tone="default" />
+            <StatCard label="En rupture" value={stats.outOfStock.length} icon={PackageX} tone="danger" hint={stats.outOfStock.slice(0, 2).map((p) => p.name).join(", ") || "Aucune"} />
+            <StatCard label="Stock faible" value={stats.lowStock.length} icon={AlertTriangle} tone="warning" hint={stats.lowStock.slice(0, 2).map((p) => p.name).join(", ") || "Aucun"} />
+            <StatCard label="Tickets ouverts" value={stats.openTickets} icon={TicketIcon} tone="primary" />
+          </div>
 
-        {/* Alertes stock */}
-        <Card className="border-border/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" /> Alertes stock
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {stats.outOfStock.length === 0 && stats.lowStock.length === 0 ? (
-              <EmptyState title="Tout est en ordre" description="Aucune alerte de stock." />
-            ) : (
-              <ul className="divide-y divide-border max-h-[28rem] overflow-y-auto scrollbar-thin">
-                {stats.outOfStock.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{getCategoryName(p.categoryId)}</p>
-                    </div>
-                    <Badge variant="destructive" className="shrink-0">🔴 Rupture</Badge>
-                  </li>
-                ))}
-                {stats.lowStock.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">Restant : {p.stock} {p.unit}</p>
-                    </div>
-                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shrink-0">⚠️ Faible</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="p-3 border-t">
-              <Button variant="outline" size="sm" className="w-full" onClick={() => onNavigate("stock")}>
-                Gérer le stock
-              </Button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* Activité récente */}
+            <Card className="lg:col-span-2 border-border/60">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <HistoryIcon className="h-4 w-4 text-primary" /> Activité récente
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => onNavigate("history")} className="text-xs">
+                  Tout voir
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                {recentActivity.length === 0 ? (
+                  <EmptyState title="Aucune activité" description="Les ventes, dépenses et modifications apparaîtront ici." />
+                ) : (
+                  <ul className="divide-y divide-border max-h-[28rem] overflow-y-auto scrollbar-thin">
+                    {recentActivity.map((item) => (
+                      <li key={`${item.type}-${item.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
+                        <div
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${
+                            item.tone === "success"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : item.tone === "danger"
+                              ? "bg-red-100 text-red-700"
+                              : item.tone === "primary"
+                              ? "bg-primary/15 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {item.amount !== undefined ? (
+                            item.amount >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />
+                          ) : (
+                            <Package className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.label}</p>
+                          <p className="text-xs text-muted-foreground">{formatDateTime(item.date)}</p>
+                        </div>
+                        {item.amount !== undefined && (
+                          <span className={`text-sm font-semibold ${item.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                            {item.amount >= 0 ? "+" : ""}
+                            <Money amount={item.amount} currency={currency} />
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Alertes stock */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" /> Alertes stock
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {stats.outOfStock.length === 0 && stats.lowStock.length === 0 ? (
+                  <EmptyState title="Tout est en ordre" description="Aucune alerte de stock." />
+                ) : (
+                  <ul className="divide-y divide-border max-h-[28rem] overflow-y-auto scrollbar-thin">
+                    {stats.outOfStock.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{getCategoryName(p.categoryId)}</p>
+                        </div>
+                        <Badge variant="destructive" className="shrink-0">🔴 Rupture</Badge>
+                      </li>
+                    ))}
+                    {stats.lowStock.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">Restant : {p.stock} {p.unit}</p>
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shrink-0">⚠️ Faible</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="p-3 border-t">
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => onNavigate("stock")}>
+                    Gérer le stock
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------- Barre d'actions rapides ----------
+function QuickActionsBar({ onNavigate }: { onNavigate: (k: ModuleKey) => void }) {
+  const actions: { label: string; icon: typeof Plus; module: ModuleKey; tone: string }[] = [
+    { label: "Nouvelle vente", icon: ShoppingCart, module: "sales", tone: "bg-primary text-primary-foreground hover:bg-primary/90" },
+    { label: "Nouveau ticket", icon: TicketIcon, module: "tickets", tone: "bg-card border border-border hover:bg-muted" },
+    { label: "Ajouter produit", icon: UtensilsCrossed, module: "products", tone: "bg-card border border-border hover:bg-muted" },
+    { label: "Dépense", icon: WalletIcon, module: "expenses", tone: "bg-card border border-border hover:bg-muted" },
+    { label: "Caisse", icon: Banknote, module: "cash", tone: "bg-card border border-border hover:bg-muted" },
+  ];
+  return (
+    <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+      {actions.map((a) => {
+        const Icon = a.icon;
+        return (
+          <button
+            key={a.label}
+            onClick={() => onNavigate(a.module)}
+            className={`flex items-center gap-2.5 rounded-xl px-3 sm:px-4 py-3 text-sm font-medium transition-all hover:shadow-md ${a.tone}`}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{a.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------- Panneau de bienvenue (premier lancement) ----------
+function WelcomePanel({ onNavigate }: { onNavigate: (k: ModuleKey) => void }) {
+  const steps: { num: number; title: string; desc: string; icon: typeof UtensilsCrossed; module: ModuleKey; cta: string }[] = [
+    {
+      num: 1,
+      title: "Ajoutez vos produits",
+      desc: "Créez votre carte : plats, boissons, accompagnements avec prix et stock.",
+      icon: UtensilsCrossed,
+      module: "products",
+      cta: "Gérer les produits",
+    },
+    {
+      num: 2,
+      title: "Enregistrez une vente",
+      desc: "Sélectionnez les produits, choisissez le mode de paiement, validez en un clic.",
+      icon: ShoppingCart,
+      module: "sales",
+      cta: "Nouvelle vente",
+    },
+    {
+      num: 3,
+      title: "Suivez votre caisse",
+      desc: "Ouvrez la caisse, visualisez entrées/sorties et bénéfice en temps réel.",
+      icon: Banknote,
+      module: "cash",
+      cta: "Ouvrir la caisse",
+    },
+    {
+      num: 4,
+      title: "Personnalisez tout",
+      desc: "Catégories, tables, zones, modes de paiement, devise, logo du restaurant.",
+      icon: SettingsIcon,
+      module: "settings",
+      cta: "Paramètres",
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Hero de bienvenue */}
+      <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-background to-accent/40">
+        <CardContent className="p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 shrink-0">
+              <Sparkles className="h-8 w-8 sm:h-10 sm:w-10" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className="bg-primary/15 text-primary border-0">Bienvenue</Badge>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                Votre restaurant est prêt à démarrer
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1.5 max-w-xl">
+                ELISHAMA est une application simple et légère pour gérer vos ventes, stock, tickets, caisse et dépenses.
+                Toutes les données restent sur cet appareil, hors ligne. Commencez par ajouter vos produits.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Button onClick={() => onNavigate("products")} className="gap-2">
+                  <UtensilsCrossed className="h-4 w-4" /> Commencer par les produits
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" onClick={() => onNavigate("settings")}>
+                  <SettingsIcon className="h-4 w-4 mr-2" /> Configurer le restaurant
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Étapes de démarrage */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <ClipboardList className="h-5 w-5 text-primary" />
+          <h3 className="text-base sm:text-lg font-semibold">Premiers pas</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {steps.map((step) => {
+            const Icon = step.icon;
+            return (
+              <button
+                key={step.num}
+                onClick={() => onNavigate(step.module)}
+                className="group flex items-start gap-4 rounded-xl border border-border/60 bg-card p-4 sm:p-5 text-left transition-all hover:border-primary/40 hover:shadow-md"
+              >
+                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                  <Icon className="h-5 w-5" />
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {step.num}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground">{step.title}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{step.desc}</p>
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-primary mt-2 group-hover:gap-2 transition-all">
+                    {step.cta} <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Rassurances */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { icon: CheckCircle2, title: "100% hors ligne", desc: "Fonctionne sans internet" },
+          { icon: CheckCircle2, title: "Données locales", desc: "Tout reste sur votre appareil" },
+          { icon: CheckCircle2, title: "Sans abonnement", desc: "Gratuit, à vie" },
+        ].map((r) => {
+          const Icon = r.icon;
+          return (
+            <div key={r.title} className="flex items-center gap-3 rounded-lg bg-muted/50 px-4 py-3">
+              <Icon className="h-5 w-5 text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">{r.title}</p>
+                <p className="text-xs text-muted-foreground">{r.desc}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

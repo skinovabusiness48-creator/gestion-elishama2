@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { CommandPalette } from "@/components/CommandPalette";
 import {
   LayoutDashboard,
   Receipt,
@@ -21,6 +22,7 @@ import {
   Menu as MenuIcon,
   Flame,
   X,
+  Search,
 } from "lucide-react";
 import type { ModuleKey } from "@/lib/types";
 import { useStore } from "@/lib/store";
@@ -118,6 +120,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { data } = useStore();
   const name = data.settings.restaurant.name || "ELISHAMA";
 
@@ -154,7 +157,9 @@ export function AppShell({
             <Flame className="h-5 w-5 text-primary shrink-0" />
             <span className="font-bold truncate">{name}</span>
           </div>
-          <span className="text-sm text-muted-foreground truncate">{currentItem?.label}</span>
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setSearchOpen(true)} aria-label="Rechercher">
+            <Search className="h-5 w-5" />
+          </Button>
         </header>
 
         {/* Header desktop */}
@@ -164,6 +169,18 @@ export function AppShell({
             <h2 className="font-semibold">{currentItem?.label}</h2>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchOpen(true)}
+              className="gap-2 h-9"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden md:inline">Rechercher</span>
+              <kbd className="hidden md:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-mono">
+                ⌘K
+              </kbd>
+            </Button>
             <span className="hidden sm:inline">
               {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </span>
@@ -186,6 +203,13 @@ export function AppShell({
           </div>
         </footer>
       </div>
+
+      {/* Palette de commandes globale (Cmd/Ctrl+K) */}
+      <CommandPalette
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        onNavigate={handleSelect}
+      />
     </div>
   );
 }
