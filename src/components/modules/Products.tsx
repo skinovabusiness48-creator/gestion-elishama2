@@ -3,8 +3,9 @@
 // ============================================================
 "use client";
 
-import React, { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
+import { useNewActionListener } from "@/hooks/use-new-action-listener";
 import {
   PageHeader,
   StatCard,
@@ -149,6 +150,14 @@ export function Products() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyProductForm());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Raccourci "N" → ouvre le dialog nouveau produit
+  const handleNewProduct = useCallback(() => {
+    setEditingProductId(null);
+    setForm(emptyProductForm());
+    setProductDialogOpen(true);
+  }, []);
+  useNewActionListener(handleNewProduct);
 
   // ---- Dialog Voir détails ----
   const [viewProductId, setViewProductId] = useState<string | null>(null);

@@ -32,6 +32,7 @@ const NAV_SHORTCUTS: { keys: string[]; label: string }[] = [
 const GLOBAL_SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ["⌘", "K"], label: "Ouvrir la recherche globale" },
   { keys: ["/"], label: "Rechercher (raccourci)" },
+  { keys: ["N"], label: "Nouvelle action contextuelle (vente, produit, ticket, dépense)" },
   { keys: ["?"], label: "Afficher cette aide" },
   { keys: ["Échap"], label: "Fermer une fenêtre" },
 ];

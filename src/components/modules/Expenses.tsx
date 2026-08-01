@@ -3,8 +3,9 @@
 // ============================================================
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useStore } from "@/lib/store";
+import { useNewActionListener } from "@/hooks/use-new-action-listener";
 import {
   PageHeader,
   StatCard,
@@ -128,6 +129,13 @@ export function Expenses() {
   // expense form dialog
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+
+  // Raccourci "N" → ouvre le dialog nouvelle dépense
+  const handleNewExpense = useCallback(() => {
+    setEditing(null);
+    setFormOpen(true);
+  }, []);
+  useNewActionListener(handleNewExpense);
 
   // category management dialog
   const [catOpen, setCatOpen] = useState(false);

@@ -10,6 +10,7 @@ interface ShortcutOptions {
   onNavigate: (k: ModuleKey) => void;
   onHelp: () => void;
   onSearch: () => void;
+  onNewAction?: () => void; // "N" : nouvelle action contextuelle
   enabled?: boolean;
 }
 
@@ -37,17 +38,21 @@ const KEY_TO_MODULE: Record<string, ModuleKey> = {
   h: "history",
 };
 
+// Modules qui supportent une action "Nouvelle" contextuelle
+const NEW_ACTION_MODULES: ModuleKey[] = ["sales", "tickets", "products", "expenses", "cash"];
+
 /**
  * Active les raccourcis clavier globaux :
  * - ? : ouvre l'aide
  * - / : ouvre la recherche (palette)
  * - 1-9, 0 : navigation rapide vers les modules
  * - lettres mnémoniques (v, t, p, s, c, d, r, h, g) : navigation rapide
+ * - n : nouvelle action contextuelle (vente/ticket/produit/dépense) si le module courant le supporte
  *
  * Les raccourcis sont désactivés quand l'utilisateur tape dans un champ
  * (input, textarea, select, contenteditable) ou quand `enabled` est false.
  */
-export function useKeyboardShortcuts({ onNavigate, onHelp, onSearch, enabled = true }: ShortcutOptions) {
+export function useKeyboardShortcuts({ onNavigate, onHelp, onSearch, onNewAction, enabled = true }: ShortcutOptions) {
   useEffect(() => {
     if (!enabled) return;
 
@@ -80,6 +85,13 @@ export function useKeyboardShortcuts({ onNavigate, onHelp, onSearch, enabled = t
       // Échap → ne rien faire (géré par les dialogs)
       if (key === "escape") return;
 
+      // n → nouvelle action contextuelle (si le module courant le supporte)
+      if (key === "n" && onNewAction) {
+        e.preventDefault();
+        onNewAction();
+        return;
+      }
+
       // Navigation rapide
       const targetModule = KEY_TO_MODULE[key];
       if (targetModule) {
@@ -90,5 +102,8 @@ export function useKeyboardShortcuts({ onNavigate, onHelp, onSearch, enabled = t
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onNavigate, onHelp, onSearch, enabled]);
+  }, [onNavigate, onHelp, onSearch, onNewAction, enabled]);
 }
+
+export { NEW_ACTION_MODULES };
+

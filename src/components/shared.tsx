@@ -205,6 +205,18 @@ export function SectionTitle({ children, action }: { children: React.ReactNode; 
   );
 }
 
+// ---------- Action Tooltip ----------
+// Infobulle légère pour les boutons d'action (évite d'avoir à wrapper manuellement)
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+export function ActionTooltip({ label, side = "bottom", children }: { label: string; side?: "top" | "bottom" | "left" | "right"; children: React.ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 // ---------- Badge helpers ----------
 export function StockBadge({ stock, minStock }: { stock: number; minStock: number }) {
   if (stock <= 0) {

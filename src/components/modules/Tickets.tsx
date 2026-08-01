@@ -3,8 +3,9 @@
 // ============================================================
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useStore } from "@/lib/store";
+import { useNewActionListener } from "@/hooks/use-new-action-listener";
 import {
   PageHeader,
   EmptyState,
@@ -117,6 +118,11 @@ export function Tickets() {
   const [cancelTicketState, setCancelTicketState] = useState<Ticket | null>(null);
   const [clearTicketState, setClearTicketState] = useState<Ticket | null>(null);
   const [mergeMode, setMergeMode] = useState(false);
+
+  // Raccourci "N" → ouvre le dialog nouveau ticket
+  const handleNewTicket = useCallback(() => setNewTicketOpen(true), []);
+  useNewActionListener(handleNewTicket);
+
   const [mergeSelection, setMergeSelection] = useState<string[]>([]);
   const [printTicket, setPrintTicket] = useState<Ticket | null>(null);
 

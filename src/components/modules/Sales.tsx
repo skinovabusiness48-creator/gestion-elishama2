@@ -3,8 +3,9 @@
 // ============================================================
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useStore } from "@/lib/store";
+import { useNewActionListener } from "@/hooks/use-new-action-listener";
 import {
   PageHeader,
   StatCard,
@@ -97,6 +98,10 @@ export function Sales() {
   const [cancelSale, setCancelSale] = useState<Sale | null>(null);
   const [payMethodsOpen, setPayMethodsOpen] = useState(false);
   const [recapSale, setRecapSale] = useState<Sale | null>(null);
+
+  // Raccourci "N" → ouvre le dialog nouvelle vente
+  const handleNewSale = useCallback(() => setNewSaleOpen(true), []);
+  useNewActionListener(handleNewSale);
 
   // ---- Print state ----
   // printContent: null | { mode: "ticket", sale } | { mode: "list", sales }

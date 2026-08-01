@@ -605,3 +605,62 @@ Task: QA + favoris dans Ventes + tri par favoris + polish composants partagés
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter une fonctionnalité de recherche globale dans les rapports.
 - Envisager des raccourcis clavier pour les actions courantes (ex: "N" pour nouvelle vente quand sur le module Ventes).
+
+---
+Task ID: 13
+Agent: webDevReview (cron round 6)
+Task: QA + tooltips + raccourci N contextuel + polish sidebar
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~7s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard + aide/raccourcis + favoris produits + favoris dans Ventes (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+
+## Modifications réalisées
+
+### 1. Tooltips sur les boutons d'action du header 💬
+- Créé un composant `ActionTooltip` dans `src/components/shared.tsx` : wrapper léger autour des primitives Tooltip de shadcn (Tooltip + TooltipTrigger asChild + TooltipContent). Importe `Tooltip`, `TooltipTrigger`, `TooltipContent` depuis `@/components/ui/tooltip`.
+- Modifié `src/components/AppShell.tsx` (header desktop) : wrappé le bouton "Rechercher" et le bouton "Aide" avec `<ActionTooltip label="...">`. Les infobulles affichent "Rechercher (⌘K)" et "Aide & raccourcis (?)" au survol, avec animation fade-in + zoom-in.
+
+### 2. Raccourci "N" pour nouvelle action contextuelle ⌨️
+- Modifié `src/hooks/use-keyboard-shortcuts.ts` :
+  * Ajout de `onNewAction?: () => void` dans `ShortcutOptions`.
+  * Gestion de la touche "n" → appelle `onNewAction` si fourni.
+  * Export de `NEW_ACTION_MODULES` (liste des modules supportant une action "Nouvelle").
+- Créé `src/hooks/use-new-action-listener.ts` : hook qui écoute l'événement global `elishama:new-action` et appelle un callback. Permet à chaque module d'ouvrir son dialog "Nouveau" sans prop drilling.
+- Modifié `src/components/AppShell.tsx` :
+  * Ajout de `handleNewAction` (useCallback) qui dispatche `window.dispatchEvent(new CustomEvent("elishama:new-action", { detail: { module: current } }))`.
+  * Passé `onNewAction={handleNewAction}` au hook `useKeyboardShortcuts`.
+  * Import de `useCallback`.
+- Câblé le listener dans 4 modules :
+  * **Sales.tsx** : `handleNewSale` → ouvre le dialog nouvelle vente.
+  * **Products.tsx** : `handleNewProduct` → reset le form + ouvre le dialog nouveau produit.
+  * **Tickets.tsx** : `handleNewTicket` → ouvre le dialog nouveau ticket.
+  * **Expenses.tsx** : `handleNewExpense` → reset editing + ouvre le dialog nouvelle dépense.
+- Modifié `src/components/HelpDialog.tsx` : ajout de "N — Nouvelle action contextuelle (vente, produit, ticket, dépense)" dans la section Général.
+
+### 3. Polish sidebar ✨
+- Modifié `src/components/AppShell.tsx` (SidebarContent) :
+  * **Barre d'indicateur actif** : ajout d'un `<span>` absolu à gauche du bouton actif (`h-7 w-1 rounded-r-full bg-sidebar-primary-foreground/90`) — repère visuel clair du module courant.
+  * **Header sidebar enrichi** : conteneur `relative overflow-hidden` avec un cercle flou décoratif (`bg-sidebar-primary/20 blur-2xl`) en haut à droite. L'icône Flame a maintenant un `shadow-md shadow-sidebar-primary/30` pour de la profondeur. Les éléments texte/icône sont `relative` pour être au-dessus du décor.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 73Ko (vs 72Ko avant), compile en 7s, 0 erreur.
+- Inspection HTML :
+  * `data-slot="tooltip-trigger"` présent sur les boutons Rechercher et Aide du header desktop ✅
+  * `rounded-r-full bg-sidebar-primary-foreground` présent (barre d'indicateur actif) ✅
+  * Tous les raccourcis sidebar présents (raccourci: 0-9) ✅
+  * Panneau de bienvenue, Aide, dark mode, recharts — tout fonctionne ✅
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). La QA visuelle interactive reste impossible depuis le cron.
+- Le raccourci "N" et les tooltips n'ont pas pu être testés interactivement. La logique est standard (event listener + CustomEvent pour N, Radix Tooltip pour les infobulles).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement le raccourci "N" via le Panneau de prévisualisation (aller sur Ventes, appuyer sur N → le dialog nouvelle vente doit s'ouvrir).
+- Tester les tooltips en survolant les boutons Rechercher et Aide du header desktop.
+- Envisager d'ajouter des tooltips sur les boutons d'action des modules (ex: boutons entrée/sortie stock dans Products).
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter une indication visuelle "N" (kbd) sur les boutons "Nouveau" de chaque module pour la découverte.

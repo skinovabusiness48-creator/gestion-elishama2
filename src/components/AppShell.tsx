@@ -3,7 +3,7 @@
 // ============================================================
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HelpDialog } from "@/components/HelpDialog";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { ActionTooltip } from "@/components/shared";
 import {
   LayoutDashboard,
   Receipt,
@@ -65,11 +66,13 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       {/* Logo / titre */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shrink-0">
+      <div className="relative flex items-center gap-3 px-5 py-5 border-b border-sidebar-border overflow-hidden">
+        {/* Décor gradient subtil */}
+        <div className="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-sidebar-primary/20 blur-2xl" aria-hidden />
+        <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shrink-0 shadow-md shadow-sidebar-primary/30">
           <Flame className="h-5 w-5" />
         </div>
-        <div className="min-w-0">
+        <div className="relative min-w-0">
           <p className="font-bold text-base tracking-tight truncate">{name}</p>
           <p className="text-xs text-sidebar-foreground/60 truncate">Gestion du restaurant</p>
         </div>
@@ -84,6 +87,10 @@ function SidebarContent({
             const hasStockBadge = item.key === "stock" && lowStock > 0;
             return (
               <li key={item.key} className="relative">
+                {/* Barre d'indicateur actif à gauche */}
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-1 rounded-r-full bg-sidebar-primary-foreground/90" aria-hidden />
+                )}
                 <button
                   onClick={() => onSelect(item.key)}
                   title={`${item.label} (raccourci: ${item.shortcut})`}
@@ -156,11 +163,17 @@ export function AppShell({
     onSelect(k);
   };
 
-  // Raccourcis clavier globaux (?, /, chiffres, lettres mnémoniques)
+  // "N" → dispatche un événement global que les modules peuvent écouter pour ouvrir leur dialog "Nouveau"
+  const handleNewAction = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("elishama:new-action", { detail: { module: current } }));
+  }, [current]);
+
+  // Raccourcis clavier globaux (?, /, chiffres, lettres mnémoniques, N)
   useKeyboardShortcuts({
     onNavigate: handleSelect,
     onHelp: () => setHelpOpen(true),
     onSearch: () => setSearchOpen(true),
+    onNewAction: handleNewAction,
   });
 
   const currentItem = NAV_ITEMS.find((i) => i.key === current);
@@ -206,28 +219,31 @@ export function AppShell({
             <h2 className="font-semibold">{currentItem?.label}</h2>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSearchOpen(true)}
-              className="gap-2 h-9"
-            >
-              <Search className="h-4 w-4" />
-              <span className="hidden md:inline">Rechercher</span>
-              <kbd className="hidden md:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-mono">
-                ⌘K
-              </kbd>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => setHelpOpen(true)}
-              aria-label="Aide & raccourcis"
-              title="Aide & raccourcis (?)"
-            >
-              <HelpCircle className="h-[1.15rem] w-[1.15rem]" />
-            </Button>
+            <ActionTooltip label="Rechercher (⌘K)">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchOpen(true)}
+                className="gap-2 h-9"
+              >
+                <Search className="h-4 w-4" />
+                <span className="hidden md:inline">Rechercher</span>
+                <kbd className="hidden md:inline-flex h-5 items-center rounded border bg-muted px-1.5 text-[10px] font-mono">
+                  ⌘K
+                </kbd>
+              </Button>
+            </ActionTooltip>
+            <ActionTooltip label="Aide & raccourcis (?)">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setHelpOpen(true)}
+                aria-label="Aide & raccourcis"
+              >
+                <HelpCircle className="h-[1.15rem] w-[1.15rem]" />
+              </Button>
+            </ActionTooltip>
             <ThemeToggle className="h-9 w-9" />
             <span className="hidden sm:inline">
               {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
