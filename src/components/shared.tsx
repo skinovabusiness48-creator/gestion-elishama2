@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { LucideIcon, Inbox, Search } from "lucide-react";
+import { LucideIcon, Inbox, Search, X } from "lucide-react";
 
 // ---------- Page Header ----------
 export function PageHeader({
@@ -102,8 +102,11 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
-        <Icon className="h-7 w-7 text-muted-foreground" />
+      <div className="relative mb-4">
+        <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl scale-150" aria-hidden />
+        <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-muted border border-border/60">
+          <Icon className="h-7 w-7 text-muted-foreground" />
+        </div>
       </div>
       <h3 className="text-base font-semibold text-foreground">{title}</h3>
       {description && <p className="text-sm text-muted-foreground mt-1 max-w-sm">{description}</p>}
@@ -176,8 +179,18 @@ export function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-9 sm:h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="w-full h-9 sm:h-10 pl-9 pr-9 rounded-md border border-input bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Effacer la recherche"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -205,6 +218,13 @@ export function StockBadge({ stock, minStock }: { stock: number; minStock: numbe
 
 // ---------- Money display ----------
 export function Money({ amount, currency = "FCFA", className }: { amount: number; currency?: string; className?: string }) {
-  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(Number.isFinite(amount) ? amount : 0);
-  return <span className={className}>{formatted} {currency}</span>;
+  const value = Number.isFinite(amount) ? amount : 0;
+  const isNegative = value < 0;
+  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(Math.abs(value));
+  return (
+    <span className={className}>
+      {isNegative ? "−" : ""}
+      {formatted} {currency}
+    </span>
+  );
 }

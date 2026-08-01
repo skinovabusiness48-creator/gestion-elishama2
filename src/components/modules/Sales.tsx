@@ -56,8 +56,10 @@ import {
   Check,
   ShoppingBag,
   ListFilter,
+  Star,
 } from "lucide-react";
 import { isSameDay, formatCurrency, formatDateTime, genId } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Sale, SaleItem, PaymentMethod, Product } from "@/lib/types";
 
 interface CartItem {
@@ -277,6 +279,11 @@ export function Sales() {
     (p) => p.active && !p.archived && (!productSearch.trim() || p.name.toLowerCase().includes(productSearch.trim().toLowerCase()))
   );
 
+  // Favoris pour accès rapide (uniquement quand pas de recherche active)
+  const favoriteProducts = data.products.filter(
+    (p) => p.active && !p.archived && p.favorite
+  );
+
   return (
     <div className="space-y-5">
       <div className="no-print space-y-5">
@@ -490,6 +497,32 @@ export function Sales() {
             <div className="space-y-3">
               <SectionTitle>Produits disponibles</SectionTitle>
               <SearchInput value={productSearch} onChange={setProductSearch} placeholder="Rechercher un produit..." />
+
+              {/* Favoris — accès rapide */}
+              {!productSearch.trim() && favoriteProducts.length > 0 && (
+                <div className="rounded-lg border border-amber-200/60 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 p-2.5">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Favoris</span>
+                    <span className="text-xs text-muted-foreground">— accès rapide</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {favoriteProducts.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => addToCart(p)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-card px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5 transition-colors"
+                        title={`${p.name} — ${formatCurrency(p.salePrice, currency)}`}
+                      >
+                        <span className="truncate max-w-24">{p.name}</span>
+                        <span className="text-muted-foreground">{formatCurrency(p.salePrice, currency)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {printableProducts.length === 0 ? (
                 <EmptyState icon={ShoppingBag} title="Aucun produit" description="Aucun produit actif trouvé." />
               ) : (
@@ -499,9 +532,17 @@ export function Sales() {
                       key={p.id}
                       type="button"
                       onClick={() => addToCart(p)}
-                      className="flex flex-col items-start gap-1 p-2 rounded-md border border-border hover:border-primary hover:bg-primary/5 transition-colors text-left"
+                      className={cn(
+                        "flex flex-col items-start gap-1 p-2 rounded-md border transition-colors text-left relative",
+                        p.favorite
+                          ? "border-amber-300/60 bg-amber-50/40 hover:border-primary hover:bg-primary/5 dark:border-amber-800/50 dark:bg-amber-950/20"
+                          : "border-border hover:border-primary hover:bg-primary/5"
+                      )}
                     >
-                      <span className="text-sm font-medium line-clamp-1">{p.name}</span>
+                      {p.favorite && (
+                        <Star className="absolute top-1.5 right-1.5 h-3 w-3 fill-amber-400 text-amber-400" />
+                      )}
+                      <span className="text-sm font-medium line-clamp-1 pr-4">{p.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {formatCurrency(p.salePrice, currency)}
                       </span>

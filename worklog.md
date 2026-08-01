@@ -557,3 +557,51 @@ Task: QA + indicateurs raccourcis sidebar + favoris produits
 - Ajouter un tri par favoris (les favoris en premier) dans la liste des produits.
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter des infobulles (tooltips shadcn) sur les boutons d'action pour améliorer la découverte.
+
+---
+Task ID: 12
+Agent: webDevReview (cron round 5)
+Task: QA + favoris dans Ventes + tri par favoris + polish composants partagés
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.9s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard + aide/raccourcis + favoris produits (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+
+## Modifications réalisées
+
+### 1. Favoris dans le module Ventes — accès rapide ⭐
+- Modifié `src/components/modules/Sales.tsx` :
+  * Import de l'icône `Star` et de `cn` depuis `@/lib/utils`.
+  * Nouveau `favoriteProducts` : liste des produits actifs non archivés marqués favoris.
+  * **Barre "Favoris — accès rapide"** dans le dialog Nouvelle vente, au-dessus de la grille de produits. Affichée uniquement quand il n'y a pas de recherche active ET qu'il existe des favoris. Carte ambre (border + bg ambre) avec étoile, et chips cliquables (nom + prix) qui ajoutent le produit au panier en un clic.
+  * **Grille de produits** : les produits favoris sont maintenant mis en évidence avec une bordure ambre et un fond ambre léger. Une étoile ambre remplie s'affiche en haut à droite de chaque carte favori.
+  * Amélioration de l'UX : reconnaissance visuelle instantanée des produits préférés dans le flux de vente.
+
+### 2. Tri par favoris dans le module Produits
+- Modifié `src/components/modules/Products.tsx` (`filteredProducts`) :
+  * Ajout d'un `.sort()` après le `.filter()` : les **favoris en premier** (favori=true avant favori=false), puis tri alphabétique par nom.
+  * Les produits favoris apparaissent donc en haut de la liste, qu'ils soient filtrés ou non.
+
+### 3. Polish des composants partagés (`src/components/shared.tsx`)
+- **EmptyState** : refonte visuelle avec un halo flou (`bg-primary/10 blur-xl scale-150`) derrière l'icône circulaire, ajout d'une bordure subtile sur le cercle. Effet "glow" moderne qui attire l'œil sans être intrusif.
+- **Money** : gestion correcte des montants négatifs — affiche un signe moins propre "−" (caractère Unicode U+2212) devant le montant formaté (au lieu d'un "-" hyphen). Plus élégant pour les pertes/sorties.
+- **SearchInput** : ajout d'un **bouton "Effacer" (X)** qui apparaît quand il y a du texte dans le champ. Bouton circulaire discret à droite, avec hover. `aria-label="Effacer la recherche"` pour l'accessibilité. Le padding droit de l'input a été ajusté (`pr-9`) pour éviter le chevauchement.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 72Ko, compile en 5.9s, 0 erreur.
+- Inspection HTML : tous les raccourcis sidebar présents (raccourci: 0 à 9), panneau de bienvenue, Aide, dark mode (elishama-theme), recharts — tout fonctionne.
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). La QA visuelle interactive reste impossible depuis le cron.
+- Les favoris dans Ventes + le tri n'ont pas pu être testés interactivement. La logique est standard (filtrage + sort + clic addToCart).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement les favoris dans Ventes via le Panneau de prévisualisation (marquer des favoris dans Produits, puis ouvrir une nouvelle vente).
+- Envisager d'ajouter un compteur de favoris dans la barre "Favoris" du dialog Ventes.
+- Ajouter des infobulles (tooltips shadcn) sur les boutons d'action pour améliorer la découverte.
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter une fonctionnalité de recherche globale dans les rapports.
+- Envisager des raccourcis clavier pour les actions courantes (ex: "N" pour nouvelle vente quand sur le module Ventes).

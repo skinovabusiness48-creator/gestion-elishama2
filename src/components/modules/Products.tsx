@@ -180,13 +180,22 @@ export function Products() {
   // ---- Produits filtrés ----
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return data.products.filter((p) => {
-      if (q && !p.name.toLowerCase().includes(q)) return false;
-      if (categoryFilter !== "all" && p.categoryId !== categoryFilter) return false;
-      if (statusFilter !== "all" && getProductStatus(p) !== statusFilter) return false;
-      if (favoritesOnly && !p.favorite) return false;
-      return true;
-    });
+    return data.products
+      .filter((p) => {
+        if (q && !p.name.toLowerCase().includes(q)) return false;
+        if (categoryFilter !== "all" && p.categoryId !== categoryFilter) return false;
+        if (statusFilter !== "all" && getProductStatus(p) !== statusFilter) return false;
+        if (favoritesOnly && !p.favorite) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        // Favoris en premier
+        const af = a.favorite ? 1 : 0;
+        const bf = b.favorite ? 1 : 0;
+        if (af !== bf) return bf - af;
+        // Puis par nom
+        return a.name.localeCompare(b.name);
+      });
   }, [data.products, search, categoryFilter, statusFilter, favoritesOnly]);
 
   // ---- Stats ----
