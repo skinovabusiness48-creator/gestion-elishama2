@@ -15,6 +15,7 @@ import {
   SectionTitle,
   StockBadge,
   Money,
+  ActionTooltip,
 } from "@/components/shared";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1088,16 +1089,21 @@ function ProductActions({
 }) {
   return (
     <div className="flex items-center justify-end gap-1">
-      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onStockIn} title="Entrée stock">
-        <PackagePlus className="h-4 w-4 text-emerald-600" />
-      </Button>
-      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onStockOut} title="Sortie stock">
-        <PackageMinus className="h-4 w-4 text-red-600" />
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button size="icon" variant="ghost" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
-        </DropdownMenuTrigger>
+      <ActionTooltip label="Entrée stock" side="top">
+        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onStockIn}>
+          <PackagePlus className="h-4 w-4 text-emerald-600" />
+        </Button>
+      </ActionTooltip>
+      <ActionTooltip label="Sortie stock" side="top">
+        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onStockOut}>
+          <PackageMinus className="h-4 w-4 text-red-600" />
+        </Button>
+      </ActionTooltip>
+      <ActionTooltip label="Plus d'actions" side="top">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
+          </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem onClick={onView}><Eye className="h-4 w-4" /> Voir détails</DropdownMenuItem>
@@ -1124,7 +1130,8 @@ function ProductActions({
             <Trash2 className="h-4 w-4" /> Supprimer
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+        </DropdownMenu>
+      </ActionTooltip>
     </div>
   );
 }

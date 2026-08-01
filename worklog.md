@@ -719,3 +719,66 @@ Task: QA + badges kbd N + alerte stock Dashboard + polish PageHeader
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter une animation pulse subtile sur la bannière d'alerte pour attirer l'attention.
 - Envisager des notifications de rappel (ex: "X tickets ouverts depuis plus de 2h").
+
+---
+Task ID: 15
+Agent: webDevReview (cron round 8)
+Task: QA + pulse animation + rappel tickets ouverts + tooltips actions Produits
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.5s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard + aide/raccourcis + favoris + tooltips + raccourci N + badges N + alerte stock (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+
+## Modifications réalisées
+
+### 1. Animations CSS utilitaires 🎬
+- Modifié `src/app/globals.css` :
+  * `@keyframes pulse-subtle` : opacité 1 → 0.7 → 1 sur 2.5s (pulse doux, non agressif).
+  * `.animate-pulse-subtle` : classe utilitaire pour appliquer l'animation.
+  * `@keyframes slide-in-right` : translateX(8px) → 0 + opacity 0 → 1 sur 0.3s.
+  * `.animate-slide-in-right` : classe utilitaire (prête à l'emploi pour futures notifications/toasts).
+
+### 2. Pulse sur la bannière d'alerte stock 💓
+- Modifié `src/components/modules/Dashboard.tsx` :
+  * L'icône AlertTriangle de la bannière d'alerte stock a maintenant la classe `animate-pulse-subtle` — attirer subtilement l'attention sans être agressif.
+  * Animation 2.5s ease-in-out infinite.
+
+### 3. Rappel tickets ouverts depuis longtemps 🎫
+- Modifié `src/components/modules/Dashboard.tsx` :
+  * Ajout de `staleTickets` dans les stats : tickets ouverts dont `createdAt` est antérieur à il y a 2h (`Date.now() - 2 * 60 * 60 * 1000`).
+  * Nouvelle **bannière bleue** "Tickets en attente" affichée si `staleTickets.length > 0`, placée après la bannière d'alerte stock.
+  * Carte bleue (border + bg bleu, support dark mode) avec icône TicketIcon dans un cercle bleu.
+  * Texte : "Tickets en attente" + "X ticket(s) ouvert(s) depuis plus de 2h" + noms des tickets (3 max + "+N autre(s)").
+  * Bouton "Voir" à droite qui navigue vers le module Tickets.
+  * Responsive flex-col mobile / flex-row desktop.
+
+### 4. Tooltips sur les boutons d'action Produits 💬
+- Modifié `src/components/modules/Products.tsx` :
+  * Import de `ActionTooltip` depuis `@/components/shared`.
+  * Wrappé les 3 boutons d'action du composant `ProductActions` avec `<ActionTooltip>` :
+    - Bouton "Entrée stock" (PackagePlus) → tooltip "Entrée stock" side="top"
+    - Bouton "Sortie stock" (PackageMinus) → tooltip "Sortie stock" side="top"
+    - Bouton "Plus d'actions" (MoreVertical, trigger du DropdownMenu) → tooltip "Plus d'actions" side="top"
+  * Suppression des `title` natifs (remplacés par les tooltips shadcn plus élégants avec animation).
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 73Ko, compile en 5.5s, 0 erreur.
+- Inspection HTML : tous les marqueurs présents — Bienvenue, Aide, elishama-theme (dark mode), recharts (graphique), raccourci: 0-9 (sidebar).
+- Source CSS : `pulse-subtle` défini (3 occurrences dans globals.css).
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). La QA visuelle interactive reste impossible depuis le cron.
+- L'animation pulse, la bannière tickets et les tooltips Produits n'ont pas pu être testés visuellement. La logique est standard (classes Tailwind + conditions d'affichage + Radix Tooltip).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement via le Panneau de prévisualisation :
+  * L'animation pulse sur l'icône de la bannière d'alerte stock (créer un produit avec stock=0)
+  * La bannière "Tickets en attente" (créer un ticket ouvert et attendre, ou modifier temporellement)
+  * Les tooltips sur les boutons d'action Produits (survoler les boutons Entrée/Sortie stock)
+- Envisager d'ajouter des tooltips sur les boutons d'action des autres modules (Tickets, Cash, Expenses).
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter un indicateur visuel de bénéfice (flèche verte/rouge) sur le Dashboard selon la tendance.
+- Envisager une page de statistiques avancées (ventes par heure, jour de la semaine le plus rentable).

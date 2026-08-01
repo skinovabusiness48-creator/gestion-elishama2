@@ -54,7 +54,11 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
     const todayExpenses = data.expenses.filter((e) => isSameDay(e.date));
     const revenue = todaySales.reduce((a, b) => a + b.total, 0);
     const expensesTotal = todayExpenses.reduce((a, b) => a + b.amount, 0);
-    const openTickets = data.tickets.filter((t) => t.status === "open").length;
+    const openTicketsList = data.tickets.filter((t) => t.status === "open");
+    const openTickets = openTicketsList.length;
+    // Tickets ouverts depuis plus de 2h
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    const staleTickets = openTicketsList.filter((t) => new Date(t.createdAt).getTime() < twoHoursAgo);
     const activeProducts = data.products.filter((p) => !p.archived);
     const outOfStock = activeProducts.filter((p) => p.stock <= 0);
     const lowStock = activeProducts.filter((p) => p.stock > 0 && p.stock <= p.minStock);
@@ -69,6 +73,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
       lowStock,
       activeProducts: activeProducts.length,
       openTickets,
+      staleTickets,
     };
   }, [data]);
 
@@ -156,7 +161,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
             <div className="mb-6">
               <div className="rounded-xl border border-amber-200/60 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50 shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50 shrink-0 animate-pulse-subtle">
                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -177,6 +182,34 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
                   </div>
                   <Button variant="outline" size="sm" className="gap-1.5 shrink-0 border-amber-300/60 text-amber-700 hover:bg-amber-100 dark:border-amber-800/50 dark:text-amber-400 dark:hover:bg-amber-900/30" onClick={() => onNavigate("stock")}>
                     Gérer <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rappel tickets ouverts depuis longtemps */}
+          {stats.staleTickets.length > 0 && (
+            <div className="mb-6">
+              <div className="rounded-xl border border-blue-200/60 bg-blue-50/50 dark:border-blue-900/40 dark:bg-blue-950/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50 shrink-0">
+                    <TicketIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                      Tickets en attente
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                      {stats.staleTickets.length} ticket(s) ouvert(s) depuis plus de 2h
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1.5 truncate">
+                      {stats.staleTickets.slice(0, 3).map((t) => t.name).join(", ")}
+                      {stats.staleTickets.length > 3 && ` +${stats.staleTickets.length - 3} autre(s)`}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1.5 shrink-0 border-blue-300/60 text-blue-700 hover:bg-blue-100 dark:border-blue-800/50 dark:text-blue-400 dark:hover:bg-blue-900/30" onClick={() => onNavigate("tickets")}>
+                    Voir <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
