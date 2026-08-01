@@ -1,0 +1,676 @@
+     1→     1→// ============================================================
+     2→     2→// ELISHAMA — Store central (React Context + LocalStorage)
+     3→     3→// ============================================================
+     4→     4→"use client";
+     5→     5→
+     6→     6→import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+     7→     7→import type {
+     8→     8→  AppData,
+     9→     9→  Settings,
+    10→    10→  Category,
+    11→    11→  Product,
+    12→    12→  Sale,
+    13→    13→  Ticket,
+    14→    14→  Table,
+    15→    15→  Zone,
+    16→    16→  Expense,
+    17→    17→  ExpenseCategory,
+    18→    18→  StockMovement,
+    19→    19→  CashOperation,
+    20→    20→  PaymentMethod,
+    21→    21→  HistoryEntry,
+    22→    22→  SaleItem,
+    23→    23→} from "./types";
+    24→    24→import { loadData, saveData } from "./storage";
+    25→    25→import { defaultData, emptyData, demoData } from "./seed";
+    26→    26→import { genId, nowISO, isSameDay } from "./format";
+    27→    27→
+    28→    28→interface StoreContextValue {
+    29→    29→  data: AppData;
+    30→    30→  // Initialisation
+    31→    31→  initializeEmpty: () => void;
+    32→    32→  initializeDemo: () => void;
+    33→    33→  resetAll: () => void;
+    34→    34→  importData: (data: AppData) => void;
+    35→    35→
+    36→    36→  // Settings
+    37→    37→  updateSettings: (settings: Settings) => void;
+    38→    38→
+    39→    39→  // Catégories de produits
+    40→    40→  addCategory: (name: string) => Category;
+    41→    41→  updateCategory: (id: string, patch: Partial<Category>) => void;
+    42→    42→  deleteCategory: (id: string) => void;
+    43→    43→  reorderCategories: (ids: string[]) => void;
+    44→    44→
+    45→    45→  // Produits
+    46→    46→  addProduct: (p: Omit<Product, "id" | "createdAt" | "updatedAt">) => Product;
+    47→    47→  updateProduct: (id: string, patch: Partial<Product>) => void;
+    48→    48→  deleteProduct: (id: string) => void;
+    49→    49→  archiveProduct: (id: string, archived: boolean) => void;
+    50→    50→  duplicateProduct: (id: string) => void;
+    51→    51→  adjustStock: (id: string, delta: number, reason: string, type: "in" | "out" | "adjust") => void;
+    52→    52→  setProductStock: (id: string, newStock: number, reason: string) => void;
+    53→    53→
+    54→    54→  // Modes de paiement
+    55→    55→  addPaymentMethod: (name: string) => void;
+    56→    56→  updatePaymentMethod: (id: string, patch: Partial<PaymentMethod>) => void;
+    57→    57→  deletePaymentMethod: (id: string) => void;
+    58→    58→
+    59→    59→  // Catégories de dépenses
+    60→    60→  addExpenseCategory: (name: string) => void;
+    61→    61→  updateExpenseCategory: (id: string, patch: Partial<ExpenseCategory>) => void;
+    62→    62→  deleteExpenseCategory: (id: string) => void;
+    63→    63→
+    64→    64→  // Zones
+    65→    65→  addZone: (name: string) => void;
+    66→    66→  updateZone: (id: string, patch: Partial<Zone>) => void;
+    67→    67→  deleteZone: (id: string) => void;
+    68→    68→
+    69→    69→  // Tables
+    70→    70→  addTable: (name: string, zoneId: string) => void;
+    71→    71→  updateTable: (id: string, patch: Partial<Table>) => void;
+    72→    72→  deleteTable: (id: string) => void;
+    73→    73→
+    74→    74→  // Ventes
+    75→    75→  createSale: (sale: { items: SaleItem[]; discount: number; paymentMethodId: string; ticketId?: string; note?: string }) => Sale;
+    76→    76→  deleteSale: (id: string) => void;
+    77→    77→  updateSale: (id: string, patch: Partial<Sale>) => void;
+    78→    78→
+    79→    79→  // Tickets
+    80→    80→  createTicket: (name: string, tableId: string, zoneId: string) => Ticket;
+    81→    81→  updateTicket: (id: string, patch: Partial<Ticket>) => void;
+    82→    82→  closeTicket: (id: string) => void;
+    83→    83→  cancelTicket: (id: string) => void;
+    84→    84→  deleteTicket: (id: string) => void;
+    85→    85→  addTicketItem: (ticketId: string, item: { productId: string; productName: string; quantity: number; unitPrice: number; note?: string }) => void;
+    86→    86→  updateTicketItem: (ticketId: string, itemId: string, patch: Partial<{ quantity: number; unitPrice: number; note: string }>) => void;
+    87→    87→  removeTicketItem: (ticketId: string, itemId: string) => void;
+    88→    88→  clearTicketItems: (ticketId: string) => void;
+    89→    89→
+    90→    90→  // Dépenses
+    91→    91→  addExpense: (e: Omit<Expense, "id" | "createdAt" | "updatedAt">) => void;
+    92→    92→  updateExpense: (id: string, patch: Partial<Expense>) => void;
+    93→    93→  deleteExpense: (id: string) => void;
+    94→    94→
+    95→    95→  // Stock movements
+    96→    96→  addStockMovement: (m: Omit<StockMovement, "id" | "createdAt">) => void;
+    97→    97→  deleteStockMovement: (id: string) => void;
+    98→    98→
+    99→    99→  // Caisse
+   100→   100→  addCashOperation: (op: Omit<CashOperation, "id" | "createdAt">) => void;
+   101→   101→  deleteCashOperation: (id: string) => void;
+   102→   102→
+   103→   103→  // Historique
+   104→   104→  addHistory: (entry: Omit<HistoryEntry, "id" | "createdAt">) => void;
+   105→   105→  clearHistory: () => void;
+   106→   106→
+   107→   107→  // Utilitaires
+   108→   108→  getProduct: (id: string) => Product | undefined;
+   109→   109→  getCategory: (id: string) => Category | undefined;
+   110→   110→  getCategoryName: (id: string) => string;
+   111→   111→  getPaymentMethodName: (id: string) => string;
+   112→   112→  getExpenseCategoryName: (id: string) => string;
+   113→   113→  getTableName: (id: string) => string;
+   114→   114→  getZoneName: (id: string) => string;
+   115→   115→}
+   116→   116→
+   117→   117→const StoreContext = createContext<StoreContextValue | null>(null);
+   118→   118→
+   119→   119→export function StoreProvider({ children }: { children: React.ReactNode }) {
+   120→   120→  const [data, setData] = useState<AppData>(() => loadData());
+   121→   121→  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+   122→   122→
+   123→   123→  // Persistance auto (debounced)
+   124→   124→  useEffect(() => {
+   125→   125→    if (saveTimer.current) clearTimeout(saveTimer.current);
+   126→   126→    saveTimer.current = setTimeout(() => saveData(data), 150);
+   127→   127→    return () => {
+   128→   128→      if (saveTimer.current) clearTimeout(saveTimer.current);
+   129→   129→    };
+   130→   130→  }, [data]);
+   131→   131→
+   132→   132→  // Helpers
+   133→   133→  const pushHistory = useCallback((entry: Omit<HistoryEntry, "id" | "createdAt">) => {
+   134→   134→    setData((d) => ({
+   135→   135→      ...d,
+   136→   136→      history: [
+   137→   137→        { ...entry, id: genId("hist"), createdAt: nowISO() },
+   138→   138→        ...d.history,
+   139→   139→      ].slice(0, 1000),
+   140→   140→    }));
+   141→   141→  }, []);
+   142→   142→
+   143→   143→  const pushCash = useCallback((op: Omit<CashOperation, "id" | "createdAt">) => {
+   144→   144→    setData((d) => ({
+   145→   145→      ...d,
+   146→   146→      cashOperations: [{ ...op, id: genId("cash"), createdAt: nowISO() }, ...d.cashOperations],
+   147→   147→    }));
+   148→   148→  }, []);
+   149→   149→
+   150→   150→  // ---------------- Initialisation ----------------
+   151→   151→  const initializeEmpty = useCallback(() => {
+   152→   152→    setData(emptyData());
+   153→   153→  }, []);
+   154→   154→  const initializeDemo = useCallback(() => {
+   155→   155→    setData(demoData());
+   156→   156→  }, []);
+   157→   157→  const resetAll = useCallback(() => {
+   158→   158→    const fresh = defaultData();
+   159→   159→    setData(fresh);
+   160→   160→  }, []);
+   161→   161→  const importData = useCallback((imported: AppData) => {
+   162→   162→    setData(imported);
+   163→   163→  }, []);
+   164→   164→
+   165→   165→  // ---------------- Settings ----------------
+   166→   166→  const updateSettings = useCallback((settings: Settings) => {
+   167→   167→    setData((d) => ({ ...d, settings }));
+   168→   168→  }, []);
+   169→   169→
+   170→   170→  // ---------------- Catégories ----------------
+   171→   171→  const addCategory = useCallback((name: string): Category => {
+   172→   172→    const cat: Category = {
+   173→   173→      id: genId("cat"),
+   174→   174→      name,
+   175→   175→      order: 0,
+   176→   176→      active: true,
+   177→   177→      createdAt: nowISO(),
+   178→   178→      updatedAt: nowISO(),
+   179→   179→    };
+   180→   180→    setData((d) => ({ ...d, categories: [...d.categories, cat] }));
+   181→   181→    pushHistory({ action: "create", entity: "category", entityId: cat.id, label: `Catégorie ajoutée: ${name}` });
+   182→   182→    return cat;
+   183→   183→  }, [pushHistory]);
+   184→   184→
+   185→   185→  const updateCategory = useCallback((id: string, patch: Partial<Category>) => {
+   186→   186→    setData((d) => ({
+   187→   187→      ...d,
+   188→   188→      categories: d.categories.map((c) => (c.id === id ? { ...c, ...patch, updatedAt: nowISO() } : c)),
+   189→   189→    }));
+   190→   190→    pushHistory({ action: "update", entity: "category", entityId: id, label: `Catégorie modifiée` });
+   191→   191→  }, [pushHistory]);
+   192→   192→
+   193→   193→  const deleteCategory = useCallback((id: string) => {
+   194→   194→    setData((d) => ({
+   195→   195→      ...d,
+   196→   196→      categories: d.categories.filter((c) => c.id !== id),
+   197→   197→      // On réassigne les produits de cette catégorie vers une catégorie "Sans catégorie" (vide)
+   198→   198→      products: d.products.map((p) => (p.categoryId === id ? { ...p, categoryId: "" } : p)),
+   199→   199→    }));
+   200→   200→    pushHistory({ action: "delete", entity: "category", entityId: id, label: `Catégorie supprimée` });
+   201→   201→  }, [pushHistory]);
+   202→   202→
+   203→   203→  const reorderCategories = useCallback((ids: string[]) => {
+   204→   204→    setData((d) => {
+   205→   205→      const map = new Map(d.categories.map((c) => [c.id, c]));
+   206→   206→      const reordered = ids.map((id, i) => ({ ...(map.get(id) as Category), order: i }));
+   207→   207→      return { ...d, categories: reordered };
+   208→   208→    });
+   209→   209→  }, []);
+   210→   210→
+   211→   211→  // ---------------- Produits ----------------
+   212→   212→  const addProduct = useCallback((p: Omit<Product, "id" | "createdAt" | "updatedAt">): Product => {
+   213→   213→    const prod: Product = { ...p, id: genId("prod"), createdAt: nowISO(), updatedAt: nowISO() };
+   214→   214→    setData((d) => ({ ...d, products: [...d.products, prod] }));
+   215→   215→    pushHistory({ action: "create", entity: "product", entityId: prod.id, label: `Produit ajouté: ${prod.name}` });
+   216→   216→    if (prod.stock > 0) {
+   217→   217→      setData((d) => ({
+   218→   218→        ...d,
+   219→   219→        stockMovements: [
+   220→   220→          { id: genId("mv"), productId: prod.id, productName: prod.name, type: "in", quantity: prod.stock, reason: "Stock initial", createdAt: nowISO() },
+   221→   221→          ...d.stockMovements,
+   222→   222→        ],
+   223→   223→      }));
+   224→   224→    }
+   225→   225→    return prod;
+   226→   226→  }, [pushHistory]);
+   227→   227→
+   228→   228→  const updateProduct = useCallback((id: string, patch: Partial<Product>) => {
+   229→   229→    setData((d) => ({
+   230→   230→      ...d,
+   231→   231→      products: d.products.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: nowISO() } : p)),
+   232→   232→    }));
+   233→   233→    pushHistory({ action: "update", entity: "product", entityId: id, label: `Produit modifié` });
+   234→   234→  }, [pushHistory]);
+   235→   235→
+   236→   236→  const deleteProduct = useCallback((id: string) => {
+   237→   237→    setData((d) => {
+   238→   238→      const prod = d.products.find((p) => p.id === id);
+   239→   239→      return {
+   240→   240→        ...d,
+   241→   241→        products: d.products.filter((p) => p.id !== id),
+   242→   242→        history: prod ? [{ id: genId("hist"), action: "delete", entity: "product", entityId: id, label: `Produit supprimé: ${prod.name}`, createdAt: nowISO() }, ...d.history].slice(0, 1000) : d.history,
+   243→   243→      };
+   244→   244→    });
+   245→   245→  }, []);
+   246→   246→
+   247→   247→  const archiveProduct = useCallback((id: string, archived: boolean) => {
+   248→   248→    setData((d) => ({
+   249→   249→      ...d,
+   250→   250→      products: d.products.map((p) => (p.id === id ? { ...p, archived, updatedAt: nowISO() } : p)),
+   251→   251→    }));
+   252→   252→    pushHistory({ action: archived ? "archive" : "restore", entity: "product", entityId: id, label: archived ? `Produit archivé` : `Produit restauré` });
+   253→   253→  }, [pushHistory]);
+   254→   254→
+   255→   255→  const duplicateProduct = useCallback((id: string) => {
+   256→   256→    setData((d) => {
+   257→   257→      const orig = d.products.find((p) => p.id === id);
+   258→   258→      if (!orig) return d;
+   259→   259→      const copy: Product = { ...orig, id: genId("prod"), name: `${orig.name} (copie)`, stock: 0, createdAt: nowISO(), updatedAt: nowISO() };
+   260→   260→      return { ...d, products: [...d.products, copy] };
+   261→   261→    });
+   262→   262→    pushHistory({ action: "create", entity: "product", entityId: id, label: `Produit dupliqué` });
+   263→   263→  }, [pushHistory]);
+   264→   264→
+   265→   265→  const adjustStock = useCallback((id: string, delta: number, reason: string, type: "in" | "out" | "adjust") => {
+   266→   266→    setData((d) => {
+   267→   267→      const prod = d.products.find((p) => p.id === id);
+   268→   268→      if (!prod) return d;
+   269→   269→      const newStock = Math.max(0, prod.stock + delta);
+   270→   270→      const movement: StockMovement = {
+   271→   271→        id: genId("mv"),
+   272→   272→        productId: id,
+   273→   273→        productName: prod.name,
+   274→   274→        type,
+   275→   275→        quantity: delta,
+   276→   276→        reason,
+   277→   277→        createdAt: nowISO(),
+   278→   278→      };
+   279→   279→      return {
+   280→   280→        ...d,
+   281→   281→        products: d.products.map((p) => (p.id === id ? { ...p, stock: newStock, updatedAt: nowISO() } : p)),
+   282→   282→        stockMovements: [movement, ...d.stockMovements],
+   283→   283→        history: [{ id: genId("hist"), action: "update", entity: "stock", entityId: id, label: `Stock ${type === "in" ? "entrée" : type === "out" ? "sortie" : "ajustement"}: ${prod.name} (${delta > 0 ? "+" : ""}${delta})`, createdAt: nowISO() }, ...d.history].slice(0, 1000),
+   284→   284→      };
+   285→   285→    });
+   286→   286→  }, []);
+   287→   287→
+   288→   288→  const setProductStock = useCallback((id: string, newStock: number, reason: string) => {
+   289→   289→    setData((d) => {
+   290→   290→      const prod = d.products.find((p) => p.id === id);
+   291→   291→      if (!prod) return d;
+   292→   292→      const delta = newStock - prod.stock;
+   293→   293→      const movement: StockMovement = {
+   294→   294→        id: genId("mv"),
+   295→   295→        productId: id,
+   296→   296→        productName: prod.name,
+   297→   297→        type: "adjust",
+   298→   298→        quantity: delta,
+   299→   299→        reason: reason || "Correction de stock",
+   300→   300→        createdAt: nowISO(),
+   301→   301→      };
+   302→   302→      return {
+   303→   303→        ...d,
+   304→   304→        products: d.products.map((p) => (p.id === id ? { ...p, stock: Math.max(0, newStock), updatedAt: nowISO() } : p)),
+   305→   305→        stockMovements: [movement, ...d.stockMovements],
+   306→   306→        history: [{ id: genId("hist"), action: "update", entity: "stock", entityId: id, label: `Stock corrigé: ${prod.name} → ${newStock}`, createdAt: nowISO() }, ...d.history].slice(0, 1000),
+   307→   307→      };
+   308→   308→    });
+   309→   309→  }, []);
+   310→   310→
+   311→   311→  // ---------------- Modes de paiement ----------------
+   312→   312→  const addPaymentMethod = useCallback((name: string) => {
+   313→   313→    setData((d) => ({
+   314→   314→      ...d,
+   315→   315→      paymentMethods: [...d.paymentMethods, { id: genId("pm"), name, active: true, order: d.paymentMethods.length, createdAt: nowISO(), updatedAt: nowISO() }],
+   316→   316→    }));
+   317→   317→    pushHistory({ action: "create", entity: "paymentMethod", entityId: "", label: `Mode de paiement ajouté: ${name}` });
+   318→   318→  }, [pushHistory]);
+   319→   319→
+   320→   320→  const updatePaymentMethod = useCallback((id: string, patch: Partial<PaymentMethod>) => {
+   321→   321→    setData((d) => ({
+   322→   322→      ...d,
+   323→   323→      paymentMethods: d.paymentMethods.map((pm) => (pm.id === id ? { ...pm, ...patch, updatedAt: nowISO() } : pm)),
+   324→   324→    }));
+   325→   325→  }, []);
+   326→   326→
+   327→   327→  const deletePaymentMethod = useCallback((id: string) => {
+   328→   328→    setData((d) => ({ ...d, paymentMethods: d.paymentMethods.filter((pm) => pm.id !== id) }));
+   329→   329→    pushHistory({ action: "delete", entity: "paymentMethod", entityId: id, label: `Mode de paiement supprimé` });
+   330→   330→  }, [pushHistory]);
+   331→   331→
+   332→   332→  // ---------------- Catégories de dépenses ----------------
+   333→   333→  const addExpenseCategory = useCallback((name: string) => {
+   334→   334→    setData((d) => ({
+   335→   335→      ...d,
+   336→   336→      expenseCategories: [...d.expenseCategories, { id: genId("ec"), name, order: d.expenseCategories.length, createdAt: nowISO(), updatedAt: nowISO() }],
+   337→   337→    }));
+   338→   338→    pushHistory({ action: "create", entity: "expenseCategory", entityId: "", label: `Catégorie de dépense ajoutée: ${name}` });
+   339→   339→  }, [pushHistory]);
+   340→   340→
+   341→   341→  const updateExpenseCategory = useCallback((id: string, patch: Partial<ExpenseCategory>) => {
+   342→   342→    setData((d) => ({
+   343→   343→      ...d,
+   344→   344→      expenseCategories: d.expenseCategories.map((c) => (c.id === id ? { ...c, ...patch, updatedAt: nowISO() } : c)),
+   345→   345→    }));
+   346→   346→  }, []);
+   347→   347→
+   348→   348→  const deleteExpenseCategory = useCallback((id: string) => {
+   349→   349→    setData((d) => ({
+   350→   350→      ...d,
+   351→   351→      expenseCategories: d.expenseCategories.filter((c) => c.id !== id),
+   352→   352→      expenses: d.expenses.map((e) => (e.categoryId === id ? { ...e, categoryId: "" } : e)),
+   353→   353→    }));
+   354→   354→    pushHistory({ action: "delete", entity: "expenseCategory", entityId: id, label: `Catégorie de dépense supprimée` });
+   355→   355→  }, [pushHistory]);
+   356→   356→
+   357→   357→  // ---------------- Zones ----------------
+   358→   358→  const addZone = useCallback((name: string) => {
+   359→   359→    setData((d) => ({ ...d, zones: [...d.zones, { id: genId("zone"), name, order: d.zones.length, createdAt: nowISO(), updatedAt: nowISO() }] }));
+   360→   360→    pushHistory({ action: "create", entity: "zone", entityId: "", label: `Zone ajoutée: ${name}` });
+   361→   361→  }, [pushHistory]);
+   362→   362→
+   363→   363→  const updateZone = useCallback((id: string, patch: Partial<Zone>) => {
+   364→   364→    setData((d) => ({ ...d, zones: d.zones.map((z) => (z.id === id ? { ...z, ...patch, updatedAt: nowISO() } : z)) }));
+   365→   365→  }, []);
+   366→   366→
+   367→   367→  const deleteZone = useCallback((id: string) => {
+   368→   368→    setData((d) => ({
+   369→   369→      ...d,
+   370→   370→      zones: d.zones.filter((z) => z.id !== id),
+   371→   371→      tables: d.tables.filter((t) => t.zoneId !== id),
+   372→   372→    }));
+   373→   373→    pushHistory({ action: "delete", entity: "zone", entityId: id, label: `Zone supprimée` });
+   374→   374→  }, [pushHistory]);
+   375→   375→
+   376→   376→  // ---------------- Tables ----------------
+   377→   377→  const addTable = useCallback((name: string, zoneId: string) => {
+   378→   378→    setData((d) => ({ ...d, tables: [...d.tables, { id: genId("tbl"), name, zoneId, active: true, order: d.tables.length, createdAt: nowISO(), updatedAt: nowISO() }] }));
+   379→   379→    pushHistory({ action: "create", entity: "table", entityId: "", label: `Table ajoutée: ${name}` });
+   380→   380→  }, [pushHistory]);
+   381→   381→
+   382→   382→  const updateTable = useCallback((id: string, patch: Partial<Table>) => {
+   383→   383→    setData((d) => ({ ...d, tables: d.tables.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: nowISO() } : t)) }));
+   384→   384→  }, []);
+   385→   385→
+   386→   386→  const deleteTable = useCallback((id: string) => {
+   387→   387→    setData((d) => ({ ...d, tables: d.tables.filter((t) => t.id !== id) }));
+   388→   388→    pushHistory({ action: "delete", entity: "table", entityId: id, label: `Table supprimée` });
+   389→   389→  }, [pushHistory]);
+   390→   390→
+   391→   391→  // ---------------- Ventes ----------------
+   392→   392→  const createSale = useCallback((input: { items: SaleItem[]; discount: number; paymentMethodId: string; ticketId?: string; note?: string }): Sale => {
+   393→   393→    const subtotal = input.items.reduce((a, b) => a + b.total, 0);
+   394→   394→    const total = Math.max(0, subtotal - input.discount);
+   395→   395→    const ticketNumber = `TICKET-${String(Date.now()).slice(-6)}`;
+   396→   396→    const sale: Sale = {
+   397→   397→      id: genId("sale"),
+   398→   398→      ticketNumber,
+   399→   399→      items: input.items,
+   400→   400→      subtotal,
+   401→   401→      discount: input.discount,
+   402→   402→      total,
+   403→   403→      paymentMethodId: input.paymentMethodId,
+   404→   404→      ticketId: input.ticketId,
+   405→   405→      note: input.note,
+   406→   406→      createdAt: nowISO(),
+   407→   407→      updatedAt: nowISO(),
+   408→   408→    };
+   409→   409→    setData((d) => {
+   410→   410→      const newProducts = d.products.map((p) => {
+   411→   411→        const it = input.items.find((i) => i.productId === p.id);
+   412→   412→        return it ? { ...p, stock: Math.max(0, p.stock - it.quantity), updatedAt: nowISO() } : p;
+   413→   413→      });
+   414→   414→      const newMovements = input.items.map((it) => ({
+   415→   415→        id: genId("mv"),
+   416→   416→        productId: it.productId,
+   417→   417→        productName: it.productName,
+   418→   418→        type: "out" as const,
+   419→   419→        quantity: -it.quantity,
+   420→   420→        reason: `Vente ${ticketNumber}`,
+   421→   421→        createdAt: nowISO(),
+   422→   422→      }));
+   423→   423→      return {
+   424→   424→        ...d,
+   425→   425→        products: newProducts,
+   426→   426→        sales: [sale, ...d.sales],
+   427→   427→        stockMovements: [...newMovements, ...d.stockMovements],
+   428→   428→        cashOperations: [{ id: genId("cash"), type: "sale" as const, amount: total, label: `Vente ${ticketNumber}`, createdAt: nowISO() }, ...d.cashOperations],
+   429→   429→        history: [{ id: genId("hist"), action: "create", entity: "sale", entityId: sale.id, label: `Vente enregistrée (${ticketNumber}) — ${input.items.map((i) => `${i.quantity}× ${i.productName}`).join(", ")}`, amount: total, createdAt: nowISO() }, ...d.history].slice(0, 1000),
+   430→   430→        settings: { ...d.settings, usage: { ...d.settings.usage, ticketNumber: d.settings.usage.ticketNumber + 1 } },
+   431→   431→      };
+   432→   432→    });
+   433→   433→    return sale;
+   434→   434→  }, []);
+   435→   435→
+   436→   436→  const deleteSale = useCallback((id: string) => {
+   437→   437→    setData((d) => {
+   438→   438→      const sale = d.sales.find((s) => s.id === id);
+   439→   439→      if (!sale) return d;
+   440→   440→      // Restituer le stock
+   441→   441→      const newProducts = d.products.map((p) => {
+   442→   442→        const it = sale.items.find((i) => i.productId === p.id);
+   443→   443→        return it ? { ...p, stock: p.stock + it.quantity, updatedAt: nowISO() } : p;
+   444→   444→      });
+   445→   445→      const restockMovements = sale.items.map((it) => ({
+   446→   446→        id: genId("mv"),
+   447→   447→        productId: it.productId,
+   448→   448→        productName: it.productName,
+   449→   449→        type: "in" as const,
+   450→   450→        quantity: it.quantity,
+   451→   451→        reason: `Annulation vente ${sale.ticketNumber}`,
+   452→   452→        createdAt: nowISO(),
+   453→   453→      }));
+   454→   454→      return {
+   455→   455→        ...d,
+   456→   456→        products: newProducts,
+   457→   457→        sales: d.sales.filter((s) => s.id !== id),
+   458→   458→        stockMovements: [...restockMovements, ...d.stockMovements],
+   459→   459→        cashOperations: d.cashOperations.filter((c) => !(c.type === "sale" && c.label.includes(sale.ticketNumber))),
+   460→   460→        history: [{ id: genId("hist"), action: "delete", entity: "sale", entityId: id, label: `Vente annulée (${sale.ticketNumber})`, amount: -sale.total, createdAt: nowISO() }, ...d.history].slice(0, 1000),
+   461→   461→      };
+   462→   462→    });
+   463→   463→  }, []);
+   464→   464→
+   465→   465→  const updateSale = useCallback((id: string, patch: Partial<Sale>) => {
+   466→   466→    setData((d) => ({ ...d, sales: d.sales.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: nowISO() } : s)) }));
+   467→   467→  }, []);
+   468→   468→
+   469→   469→  // ---------------- Tickets ----------------
+   470→   470→  const createTicket = useCallback((name: string, tableId: string, zoneId: string): Ticket => {
+   471→   471→    const ticket: Ticket = { id: genId("tick"), name, tableId, zoneId, items: [], status: "open", discount: 0, note: "", createdAt: nowISO(), updatedAt: nowISO() };
+   472→   472→    setData((d) => ({ ...d, tickets: [ticket, ...d.tickets] }));
+   473→   473→    pushHistory({ action: "create", entity: "ticket", entityId: ticket.id, label: `Ticket créé: ${name}` });
+   474→   474→    return ticket;
+   475→   475→  }, [pushHistory]);
+   476→   476→
+   477→   477→  const updateTicket = useCallback((id: string, patch: Partial<Ticket>) => {
+   478→   478→    setData((d) => ({ ...d, tickets: d.tickets.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: nowISO() } : t)) }));
+   479→   479→  }, []);
+   480→   480→
+   481→   481→  const closeTicket = useCallback((id: string) => {
+   482→   482→    setData((d) => ({ ...d, tickets: d.tickets.map((t) => (t.id === id ? { ...t, status: "closed", closedAt: nowISO(), updatedAt: nowISO() } : t)) }));
+   483→   483→    pushHistory({ action: "close", entity: "ticket", entityId: id, label: `Ticket fermé` });
+   484→   484→  }, [pushHistory]);
+   485→   485→
+   486→   486→  const cancelTicket = useCallback((id: string) => {
+   487→   487→    setData((d) => ({ ...d, tickets: d.tickets.map((t) => (t.id === id ? { ...t, status: "cancelled", closedAt: nowISO(), updatedAt: nowISO() } : t)) }));
+   488→   488→    pushHistory({ action: "cancel", entity: "ticket", entityId: id, label: `Ticket annulé` });
+   489→   489→  }, [pushHistory]);
+   490→   490→
+   491→   491→  const deleteTicket = useCallback((id: string) => {
+   492→   492→    setData((d) => ({ ...d, tickets: d.tickets.filter((t) => t.id !== id) }));
+   493→   493→    pushHistory({ action: "delete", entity: "ticket", entityId: id, label: `Ticket supprimé` });
+   494→   494→  }, [pushHistory]);
+   495→   495→
+   496→   496→  const addTicketItem = useCallback((ticketId: string, item: { productId: string; productName: string; quantity: number; unitPrice: number; note?: string }) => {
+   497→   497→    setData((d) => ({
+   498→   498→      ...d,
+   499→   499→      tickets: d.tickets.map((t) => (t.id === ticketId ? { ...t, items: [...t.items, { ...item, id: genId("ti") }], updatedAt: nowISO() } : t)),
+   500→   500→    }));
+   501→   501→  }, []);
+   502→   502→
+   503→   503→  const updateTicketItem = useCallback((ticketId: string, itemId: string, patch: Partial<{ quantity: number; unitPrice: number; note: string }>) => {
+   504→   504→    setData((d) => ({
+   505→   505→      ...d,
+   506→   506→      tickets: d.tickets.map((t) => (t.id === ticketId ? { ...t, items: t.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)), updatedAt: nowISO() } : t)),
+   507→   507→    }));
+   508→   508→  }, []);
+   509→   509→
+   510→   510→  const removeTicketItem = useCallback((ticketId: string, itemId: string) => {
+   511→   511→    setData((d) => ({
+   512→   512→      ...d,
+   513→   513→      tickets: d.tickets.map((t) => (t.id === ticketId ? { ...t, items: t.items.filter((it) => it.id !== itemId), updatedAt: nowISO() } : t)),
+   514→   514→    }));
+   515→   515→  }, []);
+   516→   516→
+   517→   517→  const clearTicketItems = useCallback((ticketId: string) => {
+   518→   518→    setData((d) => ({
+   519→   519→      ...d,
+   520→   520→      tickets: d.tickets.map((t) => (t.id === ticketId ? { ...t, items: [], updatedAt: nowISO() } : t)),
+   521→   521→    }));
+   522→   522→  }, []);
+   523→   523→
+   524→   524→  // ---------------- Dépenses ----------------
+   525→   525→  const addExpense = useCallback((e: Omit<Expense, "id" | "createdAt" | "updatedAt">) => {
+   526→   526→    const exp: Expense = { ...e, id: genId("exp"), createdAt: nowISO(), updatedAt: nowISO() };
+   527→   527→    setData((d) => ({
+   528→   528→      ...d,
+   529→   529→      expenses: [exp, ...d.expenses],
+   530→   530→      cashOperations: [{ id: genId("cash"), type: "expense", amount: -exp.amount, label: `Dépense: ${exp.label}`, createdAt: nowISO() }, ...d.cashOperations],
+   531→   531→      history: [{ id: genId("hist"), action: "create", entity: "expense", entityId: exp.id, label: `Dépense enregistrée — ${exp.label}`, amount: exp.amount, createdAt: nowISO() }, ...d.history].slice(0, 1000),
+   532→   532→    }));
+   533→   533→  }, []);
+   534→   534→
+   535→   535→  const updateExpense = useCallback((id: string, patch: Partial<Expense>) => {
+   536→   536→    setData((d) => ({ ...d, expenses: d.expenses.map((e) => (e.id === id ? { ...e, ...patch, updatedAt: nowISO() } : e)) }));
+   537→   537→    pushHistory({ action: "update", entity: "expense", entityId: id, label: `Dépense modifiée` });
+   538→   538→  }, [pushHistory]);
+   539→   539→
+   540→   540→  const deleteExpense = useCallback((id: string) => {
+   541→   541→    setData((d) => {
+   542→   542→      const exp = d.expenses.find((e) => e.id === id);
+   543→   543→      return {
+   544→   544→        ...d,
+   545→   545→        expenses: d.expenses.filter((e) => e.id !== id),
+   546→   546→        cashOperations: exp ? d.cashOperations.filter((c) => !(c.type === "expense" && c.label.includes(exp.label))) : d.cashOperations,
+   547→   547→        history: [{ id: genId("hist"), action: "delete", entity: "expense", entityId: id, label: `Dépense supprimée — ${exp?.label || ""}`, createdAt: nowISO() }, ...d.history].slice(0, 1000),
+   548→   548→      };
+   549→   549→    });
+   550→   550→  }, []);
+   551→   551→
+   552→   552→  // ---------------- Stock movements ----------------
+   553→   553→  const addStockMovement = useCallback((m: Omit<StockMovement, "id" | "createdAt">) => {
+   554→   554→    setData((d) => {
+   555→   555→      const prod = d.products.find((p) => p.id === m.productId);
+   556→   556→      if (!prod) return d;
+   557→   557→      const newStock = Math.max(0, prod.stock + m.quantity);
+   558→   558→      return {
+   559→   559→        ...d,
+   560→   560→        products: d.products.map((p) => (p.id === m.productId ? { ...p, stock: newStock, updatedAt: nowISO() } : p)),
+   561→   561→        stockMovements: [{ ...m, id: genId("mv"), createdAt: nowISO() }, ...d.stockMovements],
+   562→   562→      };
+   563→   563→    });
+   564→   564→  }, []);
+   565→   565→
+   566→   566→  const deleteStockMovement = useCallback((id: string) => {
+   567→   567→    setData((d) => ({ ...d, stockMovements: d.stockMovements.filter((m) => m.id !== id) }));
+   568→   568→  }, []);
+   569→   569→
+   570→   570→  // ---------------- Caisse ----------------
+   571→   571→  const addCashOperation = useCallback((op: Omit<CashOperation, "id" | "createdAt">) => {
+   572→   572→    setData((d) => ({ ...d, cashOperations: [{ ...op, id: genId("cash"), createdAt: nowISO() }, ...d.cashOperations] }));
+   573→   573→    pushHistory({ action: "create", entity: "cash", entityId: "", label: `Opération caisse: ${op.label}` });
+   574→   574→  }, [pushHistory]);
+   575→   575→
+   576→   576→  const deleteCashOperation = useCallback((id: string) => {
+   577→   577→    setData((d) => ({ ...d, cashOperations: d.cashOperations.filter((c) => c.id !== id) }));
+   578→   578→  }, []);
+   579→   579→
+   580→   580→  // ---------------- Historique ----------------
+   581→   581→  const addHistory = useCallback((entry: Omit<HistoryEntry, "id" | "createdAt">) => {
+   582→   582→    setData((d) => ({ ...d, history: [{ ...entry, id: genId("hist"), createdAt: nowISO() }, ...d.history].slice(0, 1000) }));
+   583→   583→  }, []);
+   584→   584→
+   585→   585→  const clearHistory = useCallback(() => {
+   586→   586→    setData((d) => ({ ...d, history: [] }));
+   587→   587→  }, []);
+   588→   588→
+   589→   589→  // ---------------- Utilitaires ----------------
+   590→   590→  const getProduct = useCallback((id: string) => data.products.find((p) => p.id === id), [data.products]);
+   591→   591→  const getCategory = useCallback((id: string) => data.categories.find((c) => c.id === id), [data.categories]);
+   592→   592→  const getCategoryName = useCallback((id: string) => data.categories.find((c) => c.id === id)?.name || "Sans catégorie", [data.categories]);
+   593→   593→  const getPaymentMethodName = useCallback((id: string) => data.paymentMethods.find((pm) => pm.id === id)?.name || "—", [data.paymentMethods]);
+   594→   594→  const getExpenseCategoryName = useCallback((id: string) => data.expenseCategories.find((c) => c.id === id)?.name || "Autres", [data.expenseCategories]);
+   595→   595→  const getTableName = useCallback((id: string) => data.tables.find((t) => t.id === id)?.name || "—", [data.tables]);
+   596→   596→  const getZoneName = useCallback((id: string) => data.zones.find((z) => z.id === id)?.name || "—", [data.zones]);
+   597→   597→
+   598→   598→  const value: StoreContextValue = {
+   599→   599→    data,
+   600→   600→    initializeEmpty,
+   601→   601→    initializeDemo,
+   602→   602→    resetAll,
+   603→   603→    importData,
+   604→   604→    updateSettings,
+   605→   605→    addCategory,
+   606→   606→    updateCategory,
+   607→   607→    deleteCategory,
+   608→   608→    reorderCategories,
+   609→   609→    addProduct,
+   610→   610→    updateProduct,
+   611→   611→    deleteProduct,
+   612→   612→    archiveProduct,
+   613→   613→    duplicateProduct,
+   614→   614→    adjustStock,
+   615→   615→    setProductStock,
+   616→   616→    addPaymentMethod,
+   617→   617→    updatePaymentMethod,
+   618→   618→    deletePaymentMethod,
+   619→   619→    addExpenseCategory,
+   620→   620→    updateExpenseCategory,
+   621→   621→    deleteExpenseCategory,
+   622→   622→    addZone,
+   623→   623→    updateZone,
+   624→   624→    deleteZone,
+   625→   625→    addTable,
+   626→   626→    updateTable,
+   627→   627→    deleteTable,
+   628→   628→    createSale,
+   629→   629→    deleteSale,
+   630→   630→    updateSale,
+   631→   631→    createTicket,
+   632→   632→    updateTicket,
+   633→   633→    closeTicket,
+   634→   634→    cancelTicket,
+   635→   635→    deleteTicket,
+   636→   636→    addTicketItem,
+   637→   637→    updateTicketItem,
+   638→   638→    removeTicketItem,
+   639→   639→    clearTicketItems,
+   640→   640→    addExpense,
+   641→   641→    updateExpense,
+   642→   642→    deleteExpense,
+   643→   643→    addStockMovement,
+   644→   644→    deleteStockMovement,
+   645→   645→    addCashOperation,
+   646→   646→    deleteCashOperation,
+   647→   647→    addHistory,
+   648→   648→    clearHistory,
+   649→   649→    getProduct,
+   650→   650→    getCategory,
+   651→   651→    getCategoryName,
+   652→   652→    getPaymentMethodName,
+   653→   653→    getExpenseCategoryName,
+   654→   654→    getTableName,
+   655→   655→    getZoneName,
+   656→   656→  };
+   657→   657→
+   658→   658→  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+   659→   659→}
+   660→   660→
+   661→   661→export function useStore(): StoreContextValue {
+   662→   662→  const ctx = useContext(StoreContext);
+   663→   663→  if (!ctx) throw new Error("useStore must be used within StoreProvider");
+   664→   664→  return ctx;
+   665→   665→}
+   666→   666→
+   667→   667→// Sélecteurs utilitaires
+   668→   668→export function useTodaySales() {
+   669→   669→  const { data } = useStore();
+   670→   670→  return data.sales.filter((s) => isSameDay(s.createdAt));
+   671→   671→}
+   672→   672→export function useTodayExpenses() {
+   673→   673→  const { data } = useStore();
+   674→   674→  return data.expenses.filter((e) => isSameDay(e.date));
+   675→   675→}
+   676→   676→
