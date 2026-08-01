@@ -151,6 +151,38 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
           {/* Barre d'actions rapides */}
           <QuickActionsBar onNavigate={onNavigate} />
 
+          {/* Alerte stock faible / rupture */}
+          {(stats.outOfStock.length > 0 || stats.lowStock.length > 0) && (
+            <div className="mb-6">
+              <div className="rounded-xl border border-amber-200/60 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50 shrink-0">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                      Alertes de stock
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                      {stats.outOfStock.length > 0 && `${stats.outOfStock.length} en rupture`}
+                      {stats.outOfStock.length > 0 && stats.lowStock.length > 0 && " · "}
+                      {stats.lowStock.length > 0 && `${stats.lowStock.length} en stock faible`}
+                    </p>
+                    {stats.outOfStock.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1.5 truncate">
+                        🔴 {stats.outOfStock.slice(0, 3).map((p) => p.name).join(", ")}
+                        {stats.outOfStock.length > 3 && ` +${stats.outOfStock.length - 3} autre(s)`}
+                      </p>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1.5 shrink-0 border-amber-300/60 text-amber-700 hover:bg-amber-100 dark:border-amber-800/50 dark:text-amber-400 dark:hover:bg-amber-900/30" onClick={() => onNavigate("stock")}>
+                    Gérer <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Stats principales */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <StatCard

@@ -347,6 +347,7 @@ export function Expenses() {
             </Button>
             <Button size="sm" className="no-print gap-2" onClick={openCreate}>
               <Plus className="h-4 w-4" /> Ajouter une dépense
+              <kbd className="hidden sm:inline-flex h-5 items-center rounded border border-white/30 bg-white/10 px-1.5 text-[10px] font-mono">N</kbd>
             </Button>
           </>
         }

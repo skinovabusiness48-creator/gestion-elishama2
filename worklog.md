@@ -664,3 +664,58 @@ Task: QA + tooltips + raccourci N contextuel + polish sidebar
 - Envisager d'ajouter des tooltips sur les boutons d'action des modules (ex: boutons entrée/sortie stock dans Products).
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter une indication visuelle "N" (kbd) sur les boutons "Nouveau" de chaque module pour la découverte.
+
+---
+Task ID: 14
+Agent: webDevReview (cron round 7)
+Task: QA + badges kbd N + alerte stock Dashboard + polish PageHeader
+
+## État du projet (évaluation)
+- Serveur dev : HTTP 200, compile en ~5.2s, 0 erreur dans dev.log.
+- `bun run lint` : 0 erreur, 0 warning.
+- 10 modules + palette Cmd+K + mode sombre + graphique Dashboard + aide/raccourcis + favoris + tooltips + raccourci N contextuel (rounds précédents).
+- agent-browser : toujours bloqué par l'isolation réseau du sandbox (persistant). QA via curl + inspection HTML.
+
+## Modifications réalisées
+
+### 1. Badges "N" sur les boutons "Nouveau" ⌨️
+- Modifié 4 modules pour ajouter un badge `<kbd>N</kbd>` sur le bouton principal "Nouveau" de chaque PageHeader, pour la découverte du raccourci :
+  * **Sales.tsx** : bouton "Nouvelle vente" → `kbd` "N" (border-white/30 bg-white/10, hidden sm:inline-flex)
+  * **Products.tsx** : bouton "Ajouter un produit" → `kbd` "N"
+  * **Tickets.tsx** : bouton "Nouveau ticket" → `kbd` "N"
+  * **Expenses.tsx** : bouton "Ajouter une dépense" → `kbd` "N"
+- Style cohérent : badge discret blanc sur fond primary, visible uniquement sur desktop (sm+), police mono, taille 10px.
+
+### 2. Bannière d'alerte stock sur le Dashboard 🚨
+- Modifié `src/components/modules/Dashboard.tsx` :
+  * Ajout d'une **bannière d'alerte stock** entre la barre d'actions rapides et les stats principales.
+  * Affichée uniquement si `outOfStock.length > 0 || lowStock.length > 0`.
+  * Carte ambre (border + bg ambre, support dark mode) avec icône AlertTriangle dans un cercle ambre.
+  * Texte : "Alertes de stock" + compteurs ("X en rupture · Y en stock faible") + noms des produits en rupture (3 max + "+N autre(s)").
+  * Bouton "Gérer" à droite qui navigue vers le module Stock (border ambre, text ambre, hover ambre).
+  * Responsive : flex-col sur mobile, flex-row sur desktop.
+
+### 3. Polish PageHeader ✨
+- Modifié `src/components/shared.tsx` (PageHeader) :
+  * **Icône enrichie** : dégradé `bg-gradient-to-br from-primary/15 to-primary/5` + anneau `ring-1 ring-primary/10` pour un effet de profondeur moderne.
+  * **Conteneur min-w-0** sur le bloc titre + `truncate` sur h1/subtitle pour éviter les débordements sur petits écrans.
+  * **shrink-0** sur le conteneur d'actions pour qu'il garde sa largeur.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 73Ko, compile en 5.2s, 0 erreur.
+- Inspection HTML : tous les marqueurs présents — Bienvenue, Aide, elishama-theme (dark mode), recharts (graphique), raccourci: 0-9 (sidebar), tooltip-trigger (tooltips header).
+
+## Risques / problèmes non résolus
+- **agent-browser toujours bloqué** par l'isolation réseau du sandbox (limitation persistante). La QA visuelle interactive reste impossible depuis le cron.
+- Les badges "N", la bannière d'alerte et le PageHeader polish n'ont pas pu être testés visuellement. La logique est standard (classes Tailwind + conditions d'affichage).
+
+## Recommandations pour la prochaine phase
+- Tester visuellement via le Panneau de prévisualisation :
+  * Les badges "N" sur les boutons Nouveau (Ventes, Produits, Tickets, Dépenses)
+  * La bannière d'alerte stock (créer un produit avec stock=0 pour la déclencher)
+  * Le dégradé sur les icônes PageHeader
+- Envisager d'ajouter des tooltips sur les boutons d'action des modules (ex: boutons entrée/sortie stock).
+- Envisager un export PDF natif (actuellement window.print()).
+- Ajouter une animation pulse subtile sur la bannière d'alerte pour attirer l'attention.
+- Envisager des notifications de rappel (ex: "X tickets ouverts depuis plus de 2h").
