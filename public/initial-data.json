@@ -1,0 +1,397 @@
+{
+  "settings": {
+    "restaurant": {
+      "name": "ELISHAMA",
+      "logo": "",
+      "phone": "",
+      "address": "",
+      "currency": "FCFA",
+      "ticketMessage": "Merci de votre visite !"
+    },
+    "usage": {
+      "currency": "FCFA",
+      "dateFormat": "DD/MM/YYYY",
+      "ticketPrefix": "TICKET-",
+      "ticketNumber": 1,
+      "stockAlertThreshold": 5
+    },
+    "initialized": true,
+    "version": 2
+  },
+  "categories": [
+    {
+      "id": "cat_exhm5lenmsbpkxk3",
+      "name": "Plats",
+      "order": 0,
+      "active": true,
+      "createdAt": "2026-07-23T16:42:40.592Z",
+      "updatedAt": "2026-07-24T09:25:47.286Z"
+    },
+    {
+      "id": "cat_d3bpixd5msbpkxk3",
+      "name": "ppp",
+      "order": 1,
+      "active": true,
+      "createdAt": "2026-07-24T09:27:07.278Z",
+      "updatedAt": "2026-07-24T09:27:07.278Z"
+    },
+    {
+      "id": "cat_b5k00pogmsbpkxk3",
+      "name": "Boissons",
+      "order": 2,
+      "active": true,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod_3w205p0zmsbpkxk3",
+      "name": "bbbb",
+      "categoryId": "cat_exhm5lenmsbpkxk3",
+      "salePrice": 5000,
+      "purchasePrice": 10000,
+      "stock": 51,
+      "minStock": 2,
+      "unit": "unité",
+      "description": "",
+      "image": "",
+      "active": true,
+      "onMenu": true,
+      "archived": false,
+      "favorite": false,
+      "createdAt": "2026-07-24T09:27:55.127Z",
+      "updatedAt": "2026-07-24T09:33:35.677Z"
+    },
+    {
+      "id": "prod_2eh9h7ktmsbpkxk3",
+      "name": "Kedjenou poulet de chair",
+      "categoryId": "cat_exhm5lenmsbpkxk3",
+      "salePrice": 0,
+      "purchasePrice": 0,
+      "stock": 0,
+      "minStock": 0,
+      "unit": "portion",
+      "description": "",
+      "image": "",
+      "active": true,
+      "onMenu": true,
+      "archived": false,
+      "favorite": false,
+      "createdAt": "2026-07-23T16:43:09.194Z",
+      "updatedAt": "2026-07-24T09:30:36.954Z"
+    },
+    {
+      "id": "prod_zh0ye4pqmsbpkxk3",
+      "name": "pp",
+      "categoryId": "cat_b5k00pogmsbpkxk3",
+      "salePrice": 500,
+      "purchasePrice": 0,
+      "stock": 0,
+      "minStock": 0,
+      "unit": "bouteille",
+      "description": "",
+      "image": "",
+      "active": true,
+      "onMenu": true,
+      "archived": false,
+      "favorite": false,
+      "createdAt": "2026-07-24T09:30:58.081Z",
+      "updatedAt": "2026-07-24T09:30:58.081Z"
+    }
+  ],
+  "sales": [
+    {
+      "id": "sale_tn2hk63wmsbpkxk3",
+      "ticketNumber": "TICKET-0001",
+      "items": [
+        {
+          "productId": "cmrxqprm10001ogv8v4obcg0w",
+          "productName": "Kedjenou poulet de chair",
+          "quantity": 1,
+          "unitPrice": 2500,
+          "discount": 0,
+          "total": 2500
+        }
+      ],
+      "subtotal": 2500,
+      "discount": 0,
+      "total": 2500,
+      "paymentMethodId": "pm_wmuzec5qmsbpkxk3",
+      "note": "",
+      "createdAt": "2026-07-23T16:43:39.910Z",
+      "updatedAt": "2026-07-23T16:43:39.912Z"
+    },
+    {
+      "id": "sale_ieqb289gmsbpkxk3",
+      "ticketNumber": "TICKET-0002",
+      "items": [
+        {
+          "productId": "cmryqptpd0003sysjihmj82hb",
+          "productName": "pp",
+          "quantity": 7,
+          "unitPrice": 500,
+          "discount": 0,
+          "total": 3500
+        }
+      ],
+      "subtotal": 3500,
+      "discount": 0,
+      "total": 3500,
+      "paymentMethodId": "pm_wmuzec5qmsbpkxk3",
+      "note": "",
+      "createdAt": "2026-07-24T09:36:00.281Z",
+      "updatedAt": "2026-07-24T09:36:00.282Z"
+    }
+  ],
+  "tickets": [],
+  "tables": [
+    {
+      "id": "tbl_4hsl5nszmsbpkxk3",
+      "name": "Table 1",
+      "zoneId": "zone_zyxwqxfxmsbpkxk3",
+      "active": true,
+      "order": 0,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "tbl_q60ha5e9msbpkxk3",
+      "name": "Table 2",
+      "zoneId": "zone_zyxwqxfxmsbpkxk3",
+      "active": true,
+      "order": 1,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "tbl_527l8ws9msbpkxk3",
+      "name": "Table 3",
+      "zoneId": "zone_zyxwqxfxmsbpkxk3",
+      "active": true,
+      "order": 2,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "tbl_4johsuljmsbpkxk3",
+      "name": "Terrasse 1",
+      "zoneId": "zone_dwgmt60bmsbpkxk3",
+      "active": true,
+      "order": 0,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "tbl_vtkzphcmmsbpkxk3",
+      "name": "Terrasse 2",
+      "zoneId": "zone_dwgmt60bmsbpkxk3",
+      "active": true,
+      "order": 1,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "tbl_jc8sz9himsbpkxk3",
+      "name": "Comptoir",
+      "zoneId": "zone_7trmsu6omsbpkxk3",
+      "active": true,
+      "order": 0,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "tbl_mwsusjojmsbpkxk3",
+      "name": "À emporter",
+      "zoneId": "zone_7trmsu6omsbpkxk3",
+      "active": true,
+      "order": 1,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_zyxwqxfxmsbpkxk3",
+      "name": "Intérieur",
+      "order": 0,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "zone_dwgmt60bmsbpkxk3",
+      "name": "Plein air",
+      "order": 1,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "zone_7trmsu6omsbpkxk3",
+      "name": "Comptoir",
+      "order": 2,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "exp_yfrk6z9gmsbpkxk4",
+      "date": "2026-07-24T00:00:00.000Z",
+      "label": "pp",
+      "categoryId": "ec_s1ny8899msbpkxk3",
+      "amount": 100000,
+      "note": "",
+      "createdAt": "2026-07-24T09:39:06.185Z",
+      "updatedAt": "2026-07-24T09:39:06.185Z"
+    }
+  ],
+  "expenseCategories": [
+    {
+      "id": "ec_jdb65hjamsbpkxk3",
+      "name": "Achat de marchandises",
+      "order": 0,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "ec_8hzbhqjrmsbpkxk3",
+      "name": "Transport",
+      "order": 1,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "ec_nhcpowh3msbpkxk3",
+      "name": "Électricité",
+      "order": 2,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "ec_s6u4vptsmsbpkxk3",
+      "name": "Eau",
+      "order": 3,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "ec_cr4ydif9msbpkxk3",
+      "name": "Entretien",
+      "order": 4,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "ec_984h8o3gmsbpkxk3",
+      "name": "Salaires",
+      "order": 5,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "ec_s1ny8899msbpkxk3",
+      "name": "Autres",
+      "order": 6,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    }
+  ],
+  "stockMovements": [
+    {
+      "id": "mv_smiw4gywmsbpkxk4",
+      "productId": "prod_3w205p0zmsbpkxk3",
+      "productName": "bbbb",
+      "type": "in",
+      "quantity": 50,
+      "unitPrice": 100,
+      "reason": "Entrée de stock (importée)",
+      "createdAt": "2026-07-24T09:33:35.671Z"
+    }
+  ],
+  "cashOperations": [
+    {
+      "id": "cash_hpsehgkzmsbpkxk3",
+      "type": "sale",
+      "amount": 2500,
+      "label": "Vente TICKET-0001",
+      "createdAt": "2026-07-23T16:43:39.910Z"
+    },
+    {
+      "id": "cash_elibwgh6msbpkxk3",
+      "type": "sale",
+      "amount": 3500,
+      "label": "Vente TICKET-0002",
+      "createdAt": "2026-07-24T09:36:00.281Z"
+    },
+    {
+      "id": "cash_kp3yy9d6msbpkxk4",
+      "type": "expense",
+      "amount": -100000,
+      "label": "Dépense: pp",
+      "createdAt": "2026-07-24T00:00:00.000Z"
+    }
+  ],
+  "paymentMethods": [
+    {
+      "id": "pm_wmuzec5qmsbpkxk3",
+      "name": "Espèces",
+      "active": true,
+      "order": 0,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "pm_aizwgqkqmsbpkxk3",
+      "name": "Mobile Money",
+      "active": true,
+      "order": 1,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "pm_m5j6mj6bmsbpkxk3",
+      "name": "Carte",
+      "active": true,
+      "order": 2,
+      "createdAt": "2026-08-02T11:20:10.467Z",
+      "updatedAt": "2026-08-02T11:20:10.467Z"
+    }
+  ],
+  "history": [
+    {
+      "id": "hist_azrqrbadmsbpkxk4",
+      "action": "create",
+      "entity": "system",
+      "entityId": "init",
+      "label": "Données importées depuis la base SQLite ELISHAMA",
+      "createdAt": "2026-08-02T11:20:10.467Z"
+    },
+    {
+      "id": "hist_q9hx8eydmsbpkxk4",
+      "action": "create",
+      "entity": "expense",
+      "entityId": "cmryr0abt000asysjzyywss7i",
+      "label": "Dépense enregistrée — pp",
+      "amount": 100000,
+      "createdAt": "2026-07-24T09:39:06.185Z"
+    },
+    {
+      "id": "hist_e415pfa2msbpkxk3",
+      "action": "create",
+      "entity": "sale",
+      "entityId": "sale_ieqb289gmsbpkxk3",
+      "label": "Vente enregistrée (TICKET-0002) — 7× pp",
+      "amount": 3500,
+      "createdAt": "2026-07-24T09:36:00.281Z"
+    },
+    {
+      "id": "hist_cril2vuvmsbpkxk3",
+      "action": "create",
+      "entity": "sale",
+      "entityId": "sale_tn2hk63wmsbpkxk3",
+      "label": "Vente enregistrée (TICKET-0001) — 1× Kedjenou poulet de chair",
+      "amount": 2500,
+      "createdAt": "2026-07-23T16:43:39.910Z"
+    }
+  ]
+}

@@ -5,26 +5,29 @@ import type { AppData } from "./types";
 import { defaultData, emptyData } from "./seed";
 
 const STORAGE_KEY = "elishama:data";
+// Version 3 : importe les données SQLite ELISHAMA au premier lancement.
 // Version 2 : supprime l'onboarding et les données de démo.
-// Toute donnée antérieure (version < 2) est réinitialisée vers un état propre.
-const DATA_VERSION = 2;
+const DATA_VERSION = 3;
 
 export function loadData(): AppData {
   if (typeof window === "undefined") return emptyData();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    // Pas de données → état propre fonctionnel (sans onboarding, sans démo)
+    // Pas de données → état temporaire vide (sera remplacé par les données importées si dispo)
     if (!raw) {
       const fresh = emptyData();
+      fresh.settings.version = DATA_VERSION;
+      fresh.settings.initialized = false; // pas encore initialisé → déclenchera le fetch
       saveData(fresh);
       return fresh;
     }
     const parsed = JSON.parse(raw) as AppData;
-    // Migration : si la version stockée est ancienne (données de test/démo),
-    // on repart d'un état propre. Les vraies données utilisateur (version >= 2) sont conservées.
+    // Migration : si la version stockée est ancienne, on repart d'un état propre.
     const storedVersion = parsed?.settings?.version ?? 1;
-    if (storedVersion < DATA_VERSION || !parsed?.settings?.initialized) {
+    if (storedVersion < DATA_VERSION) {
       const fresh = emptyData();
+      fresh.settings.version = DATA_VERSION;
+      fresh.settings.initialized = false;
       saveData(fresh);
       return fresh;
     }
@@ -52,6 +55,26 @@ export function loadData(): AppData {
     const fresh = emptyData();
     saveData(fresh);
     return fresh;
+  }
+}
+
+/**
+ * Charge les données initiales depuis /initial-data.json (données importées de la base SQLite).
+ * Ne s'exécute qu'une seule fois au premier lancement (quand settings.initialized est false).
+ */
+export async function fetchInitialData(): Promise<AppData | null> {
+  try {
+    const res = await fetch("/initial-data.json");
+    if (!res.ok) return null;
+    const imported = (await res.json()) as AppData;
+    if (!imported || !imported.settings) return null;
+    // Marquer comme initialisé avec la version courante
+    imported.settings.initialized = true;
+    imported.settings.version = DATA_VERSION;
+    return imported;
+  } catch (e) {
+    console.error("Erreur lors du chargement des données initiales:", e);
+    return null;
   }
 }
 

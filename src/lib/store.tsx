@@ -21,7 +21,7 @@ import type {
   HistoryEntry,
   SaleItem,
 } from "./types";
-import { loadData, saveData } from "./storage";
+import { loadData, saveData, fetchInitialData } from "./storage";
 import { defaultData, emptyData, demoData } from "./seed";
 import { genId, nowISO, isSameDay } from "./format";
 
@@ -129,6 +129,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [data]);
+
+  // Chargement des données initiales au premier lancement (depuis /initial-data.json)
+  useEffect(() => {
+    if (!data.settings.initialized) {
+      fetchInitialData().then((imported) => {
+        if (imported) {
+          setData(imported);
+          saveData(imported);
+        } else {
+          // Pas de données initiales → marquer comme initialisé avec l'état vide
+          setData((d) => ({ ...d, settings: { ...d.settings, initialized: true } }));
+        }
+      });
+    }
+  }, []); // une seule fois au montage
 
   // Helpers
   const pushHistory = useCallback((entry: Omit<HistoryEntry, "id" | "createdAt">) => {

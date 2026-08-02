@@ -23,7 +23,7 @@ export function defaultData(): AppData {
         stockAlertThreshold: 5,
       },
       initialized: false,
-      version: 2,
+      version: 3,
     },
     categories: [],
     products: [],
@@ -44,7 +44,7 @@ export function emptyData(): AppData {
   const data = defaultData();
   const now = nowISO();
   data.settings.initialized = true;
-  data.settings.version = 2;
+  data.settings.version = 3;
 
   // Modes de paiement de base (configurables par l'utilisateur ensuite)
   data.paymentMethods = [
