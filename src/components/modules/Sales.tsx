@@ -44,7 +44,7 @@ import {
   Receipt,
   Plus,
   Eye,
-  Printer,
+  FileDown,
   Trash2,
   CreditCard,
   ShoppingCart,
@@ -302,7 +302,7 @@ export function Sales() {
                 <CreditCard className="h-4 w-4" /> Modes de paiement
               </Button>
               <Button variant="outline" onClick={printList} className="gap-2">
-                <Printer className="h-4 w-4" /> Imprimer la liste
+                <FileDown className="h-4 w-4" /> Exporter en PDF
               </Button>
               <Button onClick={openNewSale} className="gap-2">
                 <Plus className="h-4 w-4" /> Nouvelle vente
@@ -417,8 +417,8 @@ export function Sales() {
                               <Button size="icon" variant="ghost" onClick={() => setDetailsSale(s)} title="Voir détails">
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" onClick={() => printTicket(s)} title="Imprimer le ticket">
-                                <Printer className="h-4 w-4" />
+                              <Button size="icon" variant="ghost" onClick={() => printTicket(s)} title="Exporter le ticket en PDF">
+                                <FileDown className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="icon"
@@ -464,7 +464,7 @@ export function Sales() {
                             <Eye className="h-4 w-4" /> Détails
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => printTicket(s)} className="flex-1 gap-1">
-                            <Printer className="h-4 w-4" /> Imprimer
+                            <FileDown className="h-4 w-4" /> Exporter en PDF
                           </Button>
                           <Button
                             size="sm"
@@ -795,7 +795,7 @@ export function Sales() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => detailsSale && printTicket(detailsSale)} className="gap-2">
-              <Printer className="h-4 w-4" /> Imprimer
+              <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button onClick={() => setDetailsSale(null)}>Fermer</Button>
           </DialogFooter>
@@ -829,7 +829,7 @@ export function Sales() {
               onClick={() => recapSale && printTicket(recapSale)}
               className="gap-2"
             >
-              <Printer className="h-4 w-4" /> Imprimer le ticket
+              <FileDown className="h-4 w-4" /> Exporter le ticket en PDF
             </Button>
             <Button onClick={() => setRecapSale(null)}>Terminer</Button>
           </DialogFooter>

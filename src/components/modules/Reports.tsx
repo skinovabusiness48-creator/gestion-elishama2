@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { PageHeader, StatCard, EmptyState, Money } from "@/components/shared";
 import {
   BarChart3,
-  Printer,
+  FileDown,
   Download,
   TrendingUp,
   TrendingDown,
@@ -354,7 +354,7 @@ export function Reports() {
               className="no-print gap-2"
               onClick={() => window.print()}
             >
-              <Printer className="h-4 w-4" /> Imprimer
+              <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button variant="outline" size="sm" className="no-print gap-2" onClick={exportJSON}>
               <Download className="h-4 w-4" /> Exporter

@@ -32,7 +32,7 @@ import {
   Tags,
   Table as TableIcon,
   Download,
-  Printer,
+  FileDown,
   CornerDownLeft,
 } from "lucide-react";
 
@@ -282,9 +282,9 @@ export function CommandPalette({
         },
         {
           id: "qa-print",
-          label: "Imprimer",
-          sublabel: "Imprimer la page courante",
-          icon: Printer,
+          label: "Exporter en PDF",
+          sublabel: "Exporter la page courante en PDF",
+          icon: FileDown,
           action: () => window.print(),
         },
       ] as ResultItem[]

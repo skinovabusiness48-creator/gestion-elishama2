@@ -44,7 +44,7 @@ import {
   Plus,
   Trash2,
   Minus,
-  Printer,
+  FileDown,
   X,
   Check,
   Pencil,
@@ -576,8 +576,8 @@ export function Tickets() {
                       </p>
                     </div>
                     {selectedTicket.status === "open" && (
-                      <Button variant="ghost" size="icon" onClick={() => setPrintTicket(selectedTicket)} title="Imprimer">
-                        <Printer className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" onClick={() => setPrintTicket(selectedTicket)} title="Exporter en PDF">
+                        <FileDown className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
@@ -771,7 +771,7 @@ export function Tickets() {
                         onClick={() => setPrintTicket(selectedTicket)}
                         className="gap-1"
                       >
-                        <Printer className="h-4 w-4" /> Imprimer
+                        <FileDown className="h-4 w-4" /> Exporter en PDF
                       </Button>
                       <Button
                         variant="outline"
@@ -784,7 +784,7 @@ export function Tickets() {
                   ) : (
                     <div className="flex gap-2">
                       <Button variant="outline" onClick={() => setPrintTicket(selectedTicket)} className="gap-2 flex-1">
-                        <Printer className="h-4 w-4" /> Imprimer
+                        <FileDown className="h-4 w-4" /> Exporter en PDF
                       </Button>
                       <Button
                         variant="outline"
@@ -1265,20 +1265,17 @@ export function Tickets() {
                 <Select
                   value={newTableZoneId}
                   onValueChange={setNewTableZoneId}
+                  disabled={data.zones.length === 0}
                 >
                   <SelectTrigger className="h-8 w-full">
-                    <SelectValue placeholder="Zone..." />
+                    <SelectValue placeholder={data.zones.length === 0 ? "Aucune zone — créez-en une" : "Zone..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {data.zones.length === 0 ? (
-                      <SelectItem value="" disabled>Aucune zone</SelectItem>
-                    ) : (
-                      data.zones.map((z) => (
-                        <SelectItem key={z.id} value={z.id}>
-                          {z.name}
-                        </SelectItem>
-                      ))
-                    )}
+                    {data.zones.map((z) => (
+                      <SelectItem key={z.id} value={z.id}>
+                        {z.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <div className="flex gap-2">

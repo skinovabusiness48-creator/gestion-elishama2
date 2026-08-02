@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/table";
 import {
   UtensilsCrossed,
-  Printer,
+  FileDown,
   Plus,
   Eye,
   Pencil,
@@ -442,7 +442,7 @@ export function Products() {
         actions={
           <>
             <Button variant="outline" className="gap-2 no-print" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" /> Imprimer
+              <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button className="gap-2 no-print" onClick={openAddProduct}>
               <Plus className="h-4 w-4" /> Ajouter un produit
@@ -535,7 +535,9 @@ export function Products() {
                       <TableRow>
                         <TableHead>Produit</TableHead>
                         <TableHead>Catégorie</TableHead>
+                        <TableHead className="text-right">Prix achat</TableHead>
                         <TableHead className="text-right">Prix vente</TableHead>
+                        <TableHead className="text-right">Marge</TableHead>
                         <TableHead className="text-center">Stock</TableHead>
                         <TableHead className="text-center">Statut</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -544,6 +546,7 @@ export function Products() {
                     <TableBody>
                       {filteredProducts.map((p) => {
                         const status = getProductStatus(p);
+                        const margin = (p.salePrice || 0) - (p.purchasePrice || 0);
                         return (
                           <TableRow key={p.id} className="hover:bg-muted/40">
                             <TableCell>
@@ -577,8 +580,14 @@ export function Products() {
                             <TableCell>
                               <Badge variant="outline">{getCategoryName(p.categoryId) || "—"}</Badge>
                             </TableCell>
+                            <TableCell className="text-right text-sm">
+                              {p.purchasePrice ? <Money amount={p.purchasePrice} currency={currency} /> : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
                             <TableCell className="text-right font-medium">
                               <Money amount={p.salePrice} currency={currency} />
+                            </TableCell>
+                            <TableCell className={`text-right text-sm font-medium ${margin >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                              {p.purchasePrice ? <Money amount={margin} currency={currency} /> : <span className="text-muted-foreground">—</span>}
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex flex-col items-center gap-1">
@@ -773,18 +782,20 @@ export function Products() {
             {/* Catégorie */}
             <div>
               <Label>Catégorie *</Label>
-              <Select value={form.categoryId} onValueChange={(v) => setForm((f) => ({ ...f, categoryId: v }))}>
-                <SelectTrigger className="w-full mt-1"><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
-                <SelectContent>
-                  {data.categories.length === 0 ? (
-                    <SelectItem value="" disabled>Aucune catégorie — créez-en une</SelectItem>
-                  ) : (
-                    data.categories.map((c) => (
+              {data.categories.length === 0 ? (
+                <p className="text-xs text-amber-600 mt-1.5 p-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+                  Aucune catégorie — créez-en une dans l'onglet Catégories.
+                </p>
+              ) : (
+                <Select value={form.categoryId} onValueChange={(v) => setForm((f) => ({ ...f, categoryId: v }))}>
+                  <SelectTrigger className="w-full mt-1"><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectContent>
+                    {data.categories.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Unité */}

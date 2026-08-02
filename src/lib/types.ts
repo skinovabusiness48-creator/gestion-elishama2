@@ -139,6 +139,7 @@ export interface StockMovement {
   productName: string; // snapshot
   type: "in" | "out" | "adjust";
   quantity: number; // positif pour entrée, négatif pour sortie/ajustement
+  unitPrice?: number; // prix d'achat unitaire (pour les entrées = achat)
   reason?: string;
   createdAt: string;
 }

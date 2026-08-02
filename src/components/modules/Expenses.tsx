@@ -19,7 +19,7 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Printer,
+  FileDown,
   Download,
   Tag,
   CalendarDays,
@@ -334,7 +334,7 @@ export function Expenses() {
         actions={
           <>
             <Button variant="outline" size="sm" className="no-print gap-2" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" /> Imprimer
+              <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button variant="outline" size="sm" className="no-print gap-2" onClick={exportCSV}>
               <Download className="h-4 w-4" /> CSV

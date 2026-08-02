@@ -40,10 +40,8 @@ import {
   Banknote,
   Plus,
   Minus,
-  Printer,
+  FileDown,
   Trash2,
-  Lock,
-  Unlock,
   ArrowUpCircle,
   ArrowDownCircle,
   Wallet,
@@ -82,16 +80,13 @@ export function Cash() {
   const currency = data.settings.usage.currency;
 
   // ---- Dialogs ----
-  const [openCashOpen, setOpenCashOpen] = useState(false);
   const [inOpen, setInOpen] = useState(false);
   const [outOpen, setOutOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
-  const [closeCashOpen, setCloseCashOpen] = useState(false);
   const [deleteOp, setDeleteOp] = useState<CashOperation | null>(null);
   const [printMode, setPrintMode] = useState(false);
 
   // ---- Forms ----
-  const [openAmount, setOpenAmount] = useState(0);
   const [inAmount, setInAmount] = useState(0);
   const [inLabel, setInLabel] = useState("");
   const [outAmount, setOutAmount] = useState(0);
@@ -126,12 +121,6 @@ export function Cash() {
     return { sales, expenses, manualIn, manualOut, solde, opening, profit, salesCount };
   }, [todayOps]);
 
-  // ---- Caisse ouverte ? ----
-  // last open/close of today (data is newest-first)
-  const lastOpenOrClose = todayOps.find((o) => o.type === "open" || o.type === "close");
-  const isCashOpen = lastOpenOrClose?.type === "open";
-  const hasOpenedToday = todayOps.some((o) => o.type === "open");
-
   // ---- Filter operations ----
   const filteredOps = todayOps.filter((o) => typeFilter === "all" || o.type === typeFilter);
 
@@ -144,31 +133,6 @@ export function Cash() {
   }, [printMode]);
 
   // ---- Handlers ----
-  function handleOpenCash() {
-    if (openAmount < 0) {
-      toast.error("Montant invalide");
-      return;
-    }
-    addCashOperation({
-      type: "open",
-      amount: openAmount,
-      label: `Ouverture de caisse — fond ${formatCurrency(openAmount, currency)}`,
-    });
-    toast.success("Caisse ouverte");
-    setOpenCashOpen(false);
-    setOpenAmount(0);
-  }
-
-  function handleCloseCash() {
-    addCashOperation({
-      type: "close",
-      amount: stats.solde,
-      label: `Fermeture de caisse — solde ${formatCurrency(stats.solde, currency)}`,
-    });
-    toast.success("Caisse fermée");
-    setCloseCashOpen(false);
-  }
-
   function handleAddIn() {
     if (inAmount <= 0) {
       toast.error("Montant invalide");
@@ -238,53 +202,11 @@ export function Cash() {
           actions={
             <>
               <Button variant="outline" onClick={() => setPrintMode(true)} className="gap-2">
-                <Printer className="h-4 w-4" /> Imprimer le rapport
+                <FileDown className="h-4 w-4" /> Exporter en PDF
               </Button>
-              {isCashOpen ? (
-                <Button variant="destructive" onClick={() => setCloseCashOpen(true)} className="gap-2">
-                  <Lock className="h-4 w-4" /> Fermer la caisse
-                </Button>
-              ) : (
-                <Button onClick={() => setOpenCashOpen(true)} className="gap-2">
-                  <Unlock className="h-4 w-4" /> Ouvrir la caisse
-                </Button>
-              )}
             </>
           }
         />
-
-        {/* État caisse */}
-        <Card className={`border-2 ${isCashOpen ? "border-emerald-300 dark:border-emerald-800" : "border-amber-300 dark:border-amber-800"}`}>
-          <CardContent className="p-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                  isCashOpen ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-                }`}
-              >
-                {isCashOpen ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-              </div>
-              <div>
-                <p className="font-semibold">
-                  Caisse {isCashOpen ? "ouverte" : "fermée"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {hasOpenedToday
-                    ? isCashOpen
-                      ? "Caisse ouverte aujourd'hui — en service"
-                      : "Caisse fermée pour aujourd'hui"
-                    : "Caisse non ouverte aujourd'hui"}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Solde actuel</p>
-              <p className={`text-lg font-bold ${stats.solde >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                <Money amount={stats.solde} currency={currency} />
-              </p>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* StatCards */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -329,7 +251,7 @@ export function Cash() {
         </div>
 
         {/* Actions rapides */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <Button variant="outline" onClick={() => setInOpen(true)} className="gap-2 justify-start">
             <ArrowUpCircle className="h-4 w-4 text-emerald-600" /> Entrée manuelle
           </Button>
@@ -338,21 +260,6 @@ export function Cash() {
           </Button>
           <Button variant="outline" onClick={() => setCorrectionOpen(true)} className="gap-2 justify-start">
             <SlidersHorizontal className="h-4 w-4 text-amber-600" /> Correction
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => (isCashOpen ? setCloseCashOpen(true) : setOpenCashOpen(true))}
-            className="gap-2 justify-start"
-          >
-            {isCashOpen ? (
-              <>
-                <Lock className="h-4 w-4" /> Fermer la caisse
-              </>
-            ) : (
-              <>
-                <Unlock className="h-4 w-4" /> Ouvrir la caisse
-              </>
-            )}
           </Button>
         </div>
 
@@ -388,13 +295,6 @@ export function Cash() {
                 icon={Banknote}
                 title="Aucune opération"
                 description="Les opérations de caisse du jour apparaîtront ici."
-                action={
-                  !hasOpenedToday ? (
-                    <Button onClick={() => setOpenCashOpen(true)} className="gap-2">
-                      <Unlock className="h-4 w-4" /> Ouvrir la caisse
-                    </Button>
-                  ) : undefined
-                }
               />
             ) : (
               <>
@@ -474,101 +374,6 @@ export function Cash() {
           </CardContent>
         </Card>
       </div>
-
-      {/* ============ DIALOG : Ouvrir la caisse ============ */}
-      <Dialog open={openCashOpen} onOpenChange={setOpenCashOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Unlock className="h-5 w-5 text-emerald-600" /> Ouvrir la caisse
-            </DialogTitle>
-            <DialogDescription>
-              Saisissez le fond de caisse initial pour démarrer la journée.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="open-amount">Fond de caisse</Label>
-              <Input
-                id="open-amount"
-                type="number"
-                value={openAmount}
-                min={0}
-                onChange={(e) => setOpenAmount(Math.max(0, parseFloat(e.target.value) || 0))}
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">
-                Ce montant sera enregistré comme opération d'ouverture.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenCashOpen(false)}>Annuler</Button>
-            <Button onClick={handleOpenCash} className="gap-2">
-              <CheckCircle2 className="h-4 w-4" /> Ouvrir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ============ DIALOG : Fermer la caisse ============ */}
-      <Dialog open={closeCashOpen} onOpenChange={setCloseCashOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-amber-600" /> Fermer la caisse
-            </DialogTitle>
-            <DialogDescription>
-              Voici le récapitulatif de la journée. Confirmez la fermeture.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Ventes du jour ({stats.salesCount})</span>
-              <span className="text-emerald-600">{formatCurrency(stats.sales, currency)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Dépenses du jour</span>
-              <span className="text-red-600">- {formatCurrency(stats.expenses, currency)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Bénéfice estimé</span>
-              <span className={stats.profit >= 0 ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
-                {formatCurrency(stats.profit, currency)}
-              </span>
-            </div>
-            <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Entrées manuelles</span>
-              <span className="text-emerald-600">{formatCurrency(stats.manualIn, currency)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Sorties manuelles</span>
-              <span className="text-red-600">- {formatCurrency(stats.manualOut, currency)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Fond d'ouverture</span>
-              <span>{formatCurrency(stats.opening, currency)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between font-bold text-base">
-              <span>Solde final</span>
-              <span className={stats.solde >= 0 ? "text-primary" : "text-red-600"}>
-                {formatCurrency(stats.solde, currency)}
-              </span>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setCloseCashOpen(false)}>Annuler</Button>
-            <Button variant="secondary" className="gap-2" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" /> Imprimer
-            </Button>
-            <Button onClick={handleCloseCash} variant="destructive" className="gap-2">
-              <Lock className="h-4 w-4" /> Fermer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* ============ DIALOG : Entrée manuelle ============ */}
       <Dialog open={inOpen} onOpenChange={setInOpen}>
@@ -724,7 +529,7 @@ export function Cash() {
             currency={currency}
             restaurantName={data.settings.restaurant.name}
             stats={stats}
-            isOpen={isCashOpen}
+            isOpen={true}
           />
         </div>
       )}

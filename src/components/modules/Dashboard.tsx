@@ -54,6 +54,17 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
     const todayExpenses = data.expenses.filter((e) => isSameDay(e.date));
     const revenue = todaySales.reduce((a, b) => a + b.total, 0);
     const expensesTotal = todayExpenses.reduce((a, b) => a + b.amount, 0);
+    // Bénéfice réel = (somme des marges sur vente) - dépenses
+    // Marge par vente = prix de vente - prix d'achat du produit (si connu)
+    const grossMargin = todaySales.reduce((sum, s) => {
+      const saleMargin = s.items.reduce((itemSum, it) => {
+        const prod = data.products.find((p) => p.id === it.productId);
+        const purchase = prod?.purchasePrice || 0;
+        return itemSum + (it.unitPrice - purchase) * it.quantity;
+      }, 0);
+      return sum + saleMargin;
+    }, 0);
+    const realProfit = grossMargin - expensesTotal;
     const openTicketsList = data.tickets.filter((t) => t.status === "open");
     const openTickets = openTicketsList.length;
     // Tickets ouverts depuis plus de 2h
@@ -79,6 +90,8 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
       ordersCount: todaySales.length,
       expensesTotal,
       profit,
+      realProfit,
+      grossMargin,
       yesterdayProfit,
       profitDiff,
       profitTrend,
@@ -230,7 +243,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
           )}
 
           {/* Stats principales */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
             <StatCard
               label="Chiffre d'affaires du jour"
               value={formatCurrency(stats.revenue, currency)}
@@ -251,14 +264,17 @@ export function Dashboard({ onNavigate }: { onNavigate: (k: ModuleKey) => void }
               icon={PiggyBank}
               tone={stats.profit >= 0 ? "primary" : "danger"}
               hint={
-                stats.profitTrend === "up"
-                  ? `↑ +${formatCurrency(stats.profitDiff, currency)} vs hier`
-                  : stats.profitTrend === "down"
-                  ? `↓ −${formatCurrency(Math.abs(stats.profitDiff), currency)} vs hier`
-                  : stats.yesterdayProfit > 0
-                  ? "Stable vs hier"
+                stats.realProfit !== stats.profit
+                  ? `Vrai bénéfice : ${formatCurrency(stats.realProfit, currency)}`
                   : "Ventes - Dépenses"
               }
+            />
+            <StatCard
+              label="Marge brute"
+              value={formatCurrency(stats.grossMargin, currency)}
+              icon={TrendingUp}
+              tone="success"
+              hint="Ventes - Coût d'achat"
             />
             <StatCard
               label="Commandes du jour"
@@ -559,10 +575,10 @@ function WelcomePanel({ onNavigate }: { onNavigate: (k: ModuleKey) => void }) {
     {
       num: 3,
       title: "Suivez votre caisse",
-      desc: "Ouvrez la caisse, visualisez entrées/sorties et bénéfice en temps réel.",
+      desc: "Visualisez entrées/sorties et bénéfice en temps réel.",
       icon: Banknote,
       module: "cash",
-      cta: "Ouvrir la caisse",
+      cta: "Voir la caisse",
     },
     {
       num: 4,

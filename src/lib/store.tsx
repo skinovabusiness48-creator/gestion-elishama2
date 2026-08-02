@@ -49,7 +49,7 @@ interface StoreContextValue {
   archiveProduct: (id: string, archived: boolean) => void;
   duplicateProduct: (id: string) => void;
   toggleFavorite: (id: string) => void;
-  adjustStock: (id: string, delta: number, reason: string, type: "in" | "out" | "adjust") => void;
+  adjustStock: (id: string, delta: number, reason: string, type: "in" | "out" | "adjust", unitPrice?: number) => void;
   setProductStock: (id: string, newStock: number, reason: string) => void;
 
   // Modes de paiement
@@ -272,7 +272,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const adjustStock = useCallback((id: string, delta: number, reason: string, type: "in" | "out" | "adjust") => {
+  const adjustStock = useCallback((id: string, delta: number, reason: string, type: "in" | "out" | "adjust", unitPrice?: number) => {
     setData((d) => {
       const prod = d.products.find((p) => p.id === id);
       if (!prod) return d;
@@ -283,12 +283,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         productName: prod.name,
         type,
         quantity: delta,
+        unitPrice: type === "in" ? unitPrice : undefined,
         reason,
         createdAt: nowISO(),
       };
+      // Si entrée avec prix d'achat, mettre à jour le prix d'achat du produit
+      const updatedProducts = type === "in" && unitPrice !== undefined && unitPrice > 0
+        ? d.products.map((p) => (p.id === id ? { ...p, stock: newStock, purchasePrice: unitPrice, updatedAt: nowISO() } : p))
+        : d.products.map((p) => (p.id === id ? { ...p, stock: newStock, updatedAt: nowISO() } : p));
       return {
         ...d,
-        products: d.products.map((p) => (p.id === id ? { ...p, stock: newStock, updatedAt: nowISO() } : p)),
+        products: updatedProducts,
         stockMovements: [movement, ...d.stockMovements],
         history: [{ id: genId("hist"), action: "update", entity: "stock", entityId: id, label: `Stock ${type === "in" ? "entrée" : type === "out" ? "sortie" : "ajustement"}: ${prod.name} (${delta > 0 ? "+" : ""}${delta})`, createdAt: nowISO() }, ...d.history].slice(0, 1000),
       };

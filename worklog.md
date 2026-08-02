@@ -889,3 +889,65 @@ Task: QA + comparaison périodes Rapports + amélioration clôture caisse
 - Envisager un export PDF natif (actuellement window.print()).
 - Ajouter une fonctionnalité de "réouverture" de caisse après fermeture accidentelle.
 - Envisager un graphique d'évolution du CA sur 30 jours dans les Rapports.
+
+---
+Task ID: 18
+Agent: main (user request — bug fix + features)
+Task: Fix SelectItem error + Replace Imprimer→Exporter PDF + Remove open/close cash + Stock purchase price + Real profit
+
+## Modifications réalisées
+
+### 1. Fix erreur runtime SelectItem value="" 🐛
+- `src/components/modules/Products.tsx` : `<SelectItem value="" disabled>` → remplacé par un message `<p>` hors Select quand `data.categories.length === 0`. Le Select n'est rendu que s'il y a des catégories.
+- `src/components/modules/Tickets.tsx` : même fix pour `<SelectItem value="" disabled>Aucune zone</SelectItem>` → Select désactivé avec placeholder dynamique quand pas de zones.
+
+### 2. Remplacement "Imprimer" → "Exporter en PDF" 📄
+- 7 modules modifiés : Reports, Sales, Cash, Expenses, HistoryModule, Products, Stock, Tickets + CommandPalette.
+- Icône `Printer` → `FileDown` (plus sémantique pour un export).
+- Tous les textes "Imprimer" / "Imprimer la liste" / "Imprimer le ticket" / "Imprimer le rapport" → "Exporter en PDF" / "Exporter le ticket en PDF".
+- `window.print()` conservé (le dialogue d'impression du navigateur permet "Enregistrer en PDF").
+
+### 3. Suppression "Ouvrir/Fermer caisse" 🚫
+- `src/components/modules/Cash.tsx` :
+  * Supprimé les boutons "Ouvrir la caisse" / "Fermer la caisse" du PageHeader et des actions rapides.
+  * Supprimé la carte d'état caisse (ouverte/fermée).
+  * Supprimé les 2 dialogs (Ouvrir + Fermer) et leurs handlers `handleOpenCash` / `handleCloseCash`.
+  * Supprimé les états `openCashOpen`, `closeCashOpen`, `openAmount` et les dérivés `isCashOpen`, `hasOpenedToday`, `lastOpenOrClose`.
+  * Supprimé les imports `Lock`, `Unlock`.
+  * Actions rapides passées de 4 à 3 colonnes (Entrée manuelle, Sortie manuelle, Correction).
+  * `PrintableCashReport` : `isOpen` forcé à `true` (plus de notion ouvert/fermé).
+- `src/components/modules/Dashboard.tsx` (WelcomePanel) : "Ouvrir la caisse" → "Voir la caisse", description mise à jour.
+
+### 4. Prix d'achat dans les entrées de stock 📦
+- `src/lib/types.ts` (StockMovement) : ajout de `unitPrice?: number` (prix d'achat unitaire, pour les entrées = achat).
+- `src/lib/store.tsx` (`adjustStock`) : signature étendue avec `unitPrice?: number`. Si entrée avec prix d'achat > 0, met à jour `product.purchasePrice` (le prix d'achat du produit suit le dernier prix d'achat connu) + enregistre `unitPrice` dans le mouvement.
+- `src/components/modules/Stock.tsx` :
+  * Nouvel état `stockUnitPrice`, initialisé à `p.purchasePrice || 0` à l'ouverture du dialog.
+  * Dialog d'entrée de stock : nouveau champ "Prix d'achat unitaire (optionnel)" avec calcul du total achat en temps réel (`unitPrice × qty`).
+  * `handleSaveStock` : passe le prix à `adjustStock` pour les entrées. Toast enrichi : "+X unité à Y FCFA/unité".
+
+### 5. Prix d'achat / vente / marge dans Produits et Stock 💰
+- `src/components/modules/Products.tsx` (tableau desktop) : ajout de 2 colonnes — "Prix achat" et "Marge" (calculée = prix vente - prix achat, colorée vert/rouge). Le tableau a maintenant 8 colonnes.
+- `src/components/modules/Stock.tsx` :
+  * Tableau desktop : ajout de 3 colonnes — "Prix achat", "Prix vente", "Marge/unité".
+  * Cartes mobile : ajout d'une ligne "Achat / Vente / Marge" avec les 3 valeurs.
+
+### 6. Bénéfice réel (marge brute) sur le Dashboard 📊
+- `src/components/modules/Dashboard.tsx` (stats) :
+  * Nouveau calcul `grossMargin` : somme des marges sur les ventes du jour (pour chaque item : `(unitPrice - purchasePrice) × quantity`).
+  * Nouveau `realProfit = grossMargin - expensesTotal` (bénéfice réel tenant compte du coût d'achat des produits vendus).
+  * StatCard "Bénéfice estimé" : hint affiche maintenant "Vrai bénéfice : X" si différent du bénéfice simple.
+  * Nouvelle StatCard "Marge brute" (icône TrendingUp, tone success, hint "Ventes - Coût d'achat").
+  * Grille stats principales passée à 5 colonnes (`lg:grid-cols-5`).
+
+### 7. Connexion Ventes → Produits + Stock ✅
+- Vérifié : `addToCart(p)` utilise `p.salePrice` comme prix unitaire du panier.
+- `createSale` dans le store décrémente automatiquement le stock (`prod.stock - quantity`) et crée un `StockMovement` de type "out".
+- La connexion est fonctionnelle : ajouter une vente diminue le stock du produit correspondant.
+
+## Vérifications
+- `bun run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 73Ko, compile en 6.3s, 0 erreur.
+- Aucune référence résiduelle à "Imprimer", "Printer", "Ouvrir la caisse", "Fermer la caisse", `isCashOpen`, `openCashOpen`, `closeCashOpen`.
+- L'erreur runtime SelectItem value="" est corrigée (plus de `<SelectItem value="">` dans tout le projet).
+

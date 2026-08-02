@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/table";
 import {
   Package,
-  Printer,
+  FileDown,
   PackagePlus,
   PackageMinus,
   SlidersHorizontal,
@@ -86,6 +86,7 @@ export function Stock() {
   const [stockProductId, setStockProductId] = useState<string | null>(null);
   const [stockMode, setStockMode] = useState<"in" | "out" | "adjust">("in");
   const [stockQty, setStockQty] = useState<number>(0);
+  const [stockUnitPrice, setStockUnitPrice] = useState<number>(0);
   const [stockReason, setStockReason] = useState<string>("");
 
   // ---- Dialog historique ----
@@ -143,6 +144,7 @@ export function Stock() {
     setStockProductId(p.id);
     setStockMode(mode);
     setStockQty(mode === "adjust" ? p.stock : 0);
+    setStockUnitPrice(p.purchasePrice || 0);
     setStockReason("");
   }
 
@@ -156,8 +158,9 @@ export function Stock() {
       return;
     }
     if (stockMode === "in") {
-      adjustStock(p.id, qty, stockReason || "Entrée de stock", "in");
-      toast.success("Entrée enregistrée", { description: `${p.name} : +${qty} ${p.unit}` });
+      const price = Number(stockUnitPrice) || 0;
+      adjustStock(p.id, qty, stockReason || "Entrée de stock", "in", price > 0 ? price : undefined);
+      toast.success("Entrée enregistrée", { description: `${p.name} : +${qty} ${p.unit}${price > 0 ? ` à ${formatCurrency(price, currency)}/${p.unit}` : ""}` });
     } else if (stockMode === "out") {
       adjustStock(p.id, -qty, stockReason || "Sortie de stock", "out");
       toast.success("Sortie enregistrée", { description: `${p.name} : -${qty} ${p.unit}` });
@@ -196,7 +199,7 @@ export function Stock() {
         icon={Package}
         actions={
           <Button variant="outline" className="gap-2 no-print" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Imprimer
+            <FileDown className="h-4 w-4" /> Exporter en PDF
           </Button>
         }
       />
@@ -264,6 +267,9 @@ export function Stock() {
                   <TableRow>
                     <TableHead>Produit</TableHead>
                     <TableHead>Catégorie</TableHead>
+                    <TableHead className="text-right">Prix achat</TableHead>
+                    <TableHead className="text-right">Prix vente</TableHead>
+                    <TableHead className="text-right">Marge/unité</TableHead>
                     <TableHead className="text-center">Stock actuel</TableHead>
                     <TableHead className="text-center">Minimum</TableHead>
                     <TableHead className="text-center">État</TableHead>
@@ -271,7 +277,9 @@ export function Stock() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((p) => (
+                  {filteredProducts.map((p) => {
+                    const margin = (p.salePrice || 0) - (p.purchasePrice || 0);
+                    return (
                     <TableRow key={p.id} className="hover:bg-muted/40">
                       <TableCell>
                         <p className="font-medium">{p.name}</p>
@@ -279,6 +287,15 @@ export function Stock() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{getCategoryName(p.categoryId) || "—"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {p.purchasePrice ? formatCurrency(p.purchasePrice, currency) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium">
+                        {formatCurrency(p.salePrice, currency)}
+                      </TableCell>
+                      <TableCell className={`text-right text-sm font-medium ${margin >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        {p.purchasePrice ? formatCurrency(margin, currency) : "—"}
                       </TableCell>
                       <TableCell className="text-center">
                         <span className={`font-semibold ${p.stock <= 0 ? "text-red-600" : p.stock <= p.minStock ? "text-amber-600" : ""}`}>
@@ -298,7 +315,8 @@ export function Stock() {
                         />
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -306,7 +324,9 @@ export function Stock() {
 
           {/* Cartes mobile */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden mb-6">
-            {filteredProducts.map((p) => (
+            {filteredProducts.map((p) => {
+              const margin = (p.salePrice || 0) - (p.purchasePrice || 0);
+              return (
               <Card key={p.id} className={`border-border/60 ${p.stock <= 0 ? "border-red-300 dark:border-red-900" : p.stock <= p.minStock ? "border-amber-300 dark:border-amber-900" : ""}`}>
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-2">
@@ -319,6 +339,17 @@ export function Stock() {
                   <div className="flex items-center justify-between gap-2 mt-3 mb-2 text-sm">
                     <span className="text-muted-foreground">Stock : <span className={`font-semibold ${p.stock <= 0 ? "text-red-600" : p.stock <= p.minStock ? "text-amber-600" : ""}`}>{p.stock}</span></span>
                     <span className="text-muted-foreground">Min : {p.minStock}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mb-2 text-xs">
+                    <span className="text-muted-foreground">
+                      Achat : {p.purchasePrice ? formatCurrency(p.purchasePrice, currency) : "—"}
+                    </span>
+                    <span className="text-muted-foreground">
+                      Vente : {formatCurrency(p.salePrice, currency)}
+                    </span>
+                    <span className={`font-medium ${margin >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      Marge : {p.purchasePrice ? formatCurrency(margin, currency) : "—"}
+                    </span>
                   </div>
                   <div className="grid grid-cols-4 gap-1">
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => openStockDialog(p, "in")}>
@@ -336,7 +367,8 @@ export function Stock() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
@@ -427,6 +459,25 @@ export function Stock() {
                     </p>
                   )}
                 </div>
+                {stockMode === "in" && (
+                  <div>
+                    <Label htmlFor="s-price">Prix d'achat unitaire (optionnel)</Label>
+                    <Input
+                      id="s-price"
+                      type="number"
+                      min={0}
+                      value={stockUnitPrice}
+                      onChange={(e) => setStockUnitPrice(Number(e.target.value))}
+                      placeholder="0"
+                      className="mt-1"
+                    />
+                    {stockUnitPrice > 0 && stockQty > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total achat : <span className="font-medium">{formatCurrency(stockUnitPrice * stockQty, currency)}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="s-reason">Raison</Label>
                   <Input

@@ -9,7 +9,7 @@ import { PageHeader, EmptyState, ConfirmDialog, SearchInput } from "@/components
 import {
   History,
   Trash2,
-  Printer,
+  FileDown,
   Plus,
   Pencil,
   Archive,
@@ -172,7 +172,7 @@ export function HistoryModule() {
               className="no-print gap-2"
               onClick={() => window.print()}
             >
-              <Printer className="h-4 w-4" /> Imprimer
+              <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button
               variant="outline"
