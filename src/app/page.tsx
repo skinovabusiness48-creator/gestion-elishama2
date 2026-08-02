@@ -17,12 +17,12 @@ import type { ModuleKey } from "@/lib/types";
 import { Flame } from "lucide-react";
 
 function AppContent() {
-  const { data } = useStore();
+  const { data, isLoadingInitial } = useStore();
   const [current, setCurrent] = useState<ModuleKey>("dashboard");
   const handleNavigate = (k: ModuleKey) => setCurrent(k);
 
   // Écran de chargement pendant le fetch des données initiales
-  if (!data.settings.initialized) {
+  if (isLoadingInitial) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/30">
         <div className="flex flex-col items-center gap-4">

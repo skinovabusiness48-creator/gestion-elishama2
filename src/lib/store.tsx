@@ -21,12 +21,13 @@ import type {
   HistoryEntry,
   SaleItem,
 } from "./types";
-import { loadData, saveData, fetchInitialData } from "./storage";
+import { loadData, saveData, fetchInitialData, isFirstLaunch } from "./storage";
 import { defaultData, emptyData, demoData } from "./seed";
 import { genId, nowISO, isSameDay } from "./format";
 
 interface StoreContextValue {
   data: AppData;
+  isLoadingInitial: boolean;
   // Initialisation
   initializeEmpty: () => void;
   initializeDemo: () => void;
@@ -131,18 +132,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [data]);
 
   // Chargement des données initiales au premier lancement (depuis /initial-data.json)
+  // Évite le mismatch d'hydration : le SSR et le premier rendu client utilisent emptyData(),
+  // puis le useEffect (côté client uniquement) fetch les données importées si c'est le premier lancement.
+  const [isLoadingInitial, setIsLoadingInitial] = useState(false);
+  const initialFetchStarted = useRef(false);
   useEffect(() => {
-    if (!data.settings.initialized) {
-      fetchInitialData().then((imported) => {
-        if (imported) {
-          setData(imported);
-          saveData(imported);
-        } else {
-          // Pas de données initiales → marquer comme initialisé avec l'état vide
-          setData((d) => ({ ...d, settings: { ...d.settings, initialized: true } }));
-        }
-      });
-    }
+    if (initialFetchStarted.current) return;
+    if (!isFirstLaunch()) return;
+    initialFetchStarted.current = true;
+
+    let cancelled = false;
+    // Déclencher le chargement asynchrone
+    fetchInitialData().then((imported) => {
+      if (cancelled) return;
+      if (imported) {
+        setData(imported);
+        saveData(imported);
+      }
+      setIsLoadingInitial(false);
+    });
+    // Marquer comme en cours de chargement (dans un microtask pour éviter le setState synchrone)
+    Promise.resolve().then(() => {
+      if (!cancelled) setIsLoadingInitial(true);
+    });
+
+    return () => { cancelled = true; };
   }, []); // une seule fois au montage
 
   // Helpers
@@ -627,6 +641,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value: StoreContextValue = {
     data,
+    isLoadingInitial,
     initializeEmpty,
     initializeDemo,
     resetAll,

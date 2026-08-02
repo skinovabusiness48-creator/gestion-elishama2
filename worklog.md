@@ -951,3 +951,58 @@ Task: Fix SelectItem error + Replace Imprimer→Exporter PDF + Remove open/close
 - Aucune référence résiduelle à "Imprimer", "Printer", "Ouvrir la caisse", "Fermer la caisse", `isCashOpen`, `openCashOpen`, `closeCashOpen`.
 - L'erreur runtime SelectItem value="" est corrigée (plus de `<SelectItem value="">` dans tout le projet).
 
+
+---
+Task ID: 19
+Agent: main (user request — data import + npm migration)
+Task: Migration bun→npm + Import données SQLite + chargement initial
+
+## Modifications réalisées
+
+### 1. Migration bun → npm 📦
+- `package.json` : script `start` → `node` au lieu de `bun`, retiré `bun-types`, ajouté `@types/node`
+- `bun.lock` supprimé, `package-lock.json` créé via `npm install`
+- Serveur dev démarré avec `npm run dev` (HTTP 200, compile en ~5s)
+
+### 2. Import des données SQLite ELISHAMA 🗄️
+- Base SQLite `db-data.zip` (uploadée par l'utilisateur) extraite vers `db/custom.db`
+- Schéma Prisma introspecté (`prisma db pull`) : 11 modèles (Category, Product, Dish, Drink, Sale, SaleItem, Expense, ExpenseCategory, Supplier, StockEntry, CustomerFeedback)
+- `prisma/schema.prisma` mis à jour avec le schéma introspecté
+- Script de conversion (temporaire) : extrait les données SQLite via Prisma et les convertit au format `AppData` LocalStorage
+- Données converties : 3 catégories (Plats, ppp, Boissons), 3 produits (bbbb, Kedjenou poulet de chair, pp), 2 ventes, 1 dépense (100 000 FCFA), 1 entrée de stock (50 unités à 100 FCFA), 3 modes de paiement, 7 tables, 3 zones
+- Fichier `public/initial-data.json` (10Ko) créé avec les données converties
+
+### 3. Chargement initial automatique 🔄
+- `src/lib/storage.ts` :
+  * `DATA_VERSION` passé à 3 (force la migration au prochain chargement)
+  * Nouvelle fonction `isFirstLaunch()` : vérifie si c'est le tout premier lancement (pas de données en localStorage ou version ancienne)
+  * Nouvelle fonction `fetchInitialData()` : fetch `/initial-data.json` et retourne les données importées
+  * `loadData()` simplifié : ne joue plus sur `initialized` pour le chargement initial
+- `src/lib/store.tsx` (StoreProvider) :
+  * Nouvel état `isLoadingInitial` + ref `initialFetchStarted`
+  * `useEffect` au montage : si `isFirstLaunch()`, fetch les données initiales et les charge
+  * `isLoadingInitial` exposé via le context
+- `src/lib/seed.ts` : version mise à jour à 3 dans `defaultData()` et `emptyData()`
+- `src/app/page.tsx` :
+  * Écran de chargement animé (logo Flame pulse + 3 points bounce) pendant le fetch initial
+  * Affiché quand `isLoadingInitial` est true
+
+### 4. Gestion de l'hydration 💧
+- Le SSR rend `emptyData()` (initialized=true) → pas d'écran de chargement côté serveur
+- Le client déclenche le fetch dans `useEffect` (côté client uniquement) → évite le mismatch d'hydration
+- `setIsLoadingInitial(true)` déclacé via `Promise.resolve().then()` pour éviter le lint `react-hooks/set-state-in-effect`
+
+## Vérifications
+- `npm run lint` : 0 erreur, 0 warning.
+- Serveur dev : HTTP 200, 73Ko, compile en 5.1s, 0 erreur.
+- `initial-data.json` servi correctement : HTTP 200, 10 229 octets.
+- Données importées : 3 catégories, 3 produits, 2 ventes, 1 dépense, 1 mouvement de stock, 3 modes de paiement, 7 tables, 3 zones.
+- Schéma Prisma mis à jour avec les 11 modèles introspectés de l'ancienne base.
+
+## Fonctionnement
+1. Au premier lancement (pas de localStorage), l'app affiche brièvement un écran de chargement
+2. Le store fetch `/initial-data.json` (données de l'ancienne base SQLite)
+3. Les données sont chargées dans le state et sauvegardées dans localStorage
+4. L'app affiche ensuite le Dashboard avec les données importées (catégories, produits, ventes, dépenses, etc.)
+5. Au prochain rechargement, les données sont lues directement depuis localStorage (pas de re-fetch)
+

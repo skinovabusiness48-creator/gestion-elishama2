@@ -13,11 +13,9 @@ export function loadData(): AppData {
   if (typeof window === "undefined") return emptyData();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    // Pas de données → état temporaire vide (sera remplacé par les données importées si dispo)
+    // Pas de données → état propre (le fetch initial se fera via fetchInitialData si nécessaire)
     if (!raw) {
       const fresh = emptyData();
-      fresh.settings.version = DATA_VERSION;
-      fresh.settings.initialized = false; // pas encore initialisé → déclenchera le fetch
       saveData(fresh);
       return fresh;
     }
@@ -26,8 +24,6 @@ export function loadData(): AppData {
     const storedVersion = parsed?.settings?.version ?? 1;
     if (storedVersion < DATA_VERSION) {
       const fresh = emptyData();
-      fresh.settings.version = DATA_VERSION;
-      fresh.settings.initialized = false;
       saveData(fresh);
       return fresh;
     }
@@ -55,6 +51,23 @@ export function loadData(): AppData {
     const fresh = emptyData();
     saveData(fresh);
     return fresh;
+  }
+}
+
+/**
+ * Vérifie si c'est le tout premier lancement (aucune donnée en localStorage).
+ * Utilisé pour déclencher le fetch des données initiales importées.
+ */
+export function isFirstLaunch(): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return true;
+  try {
+    const parsed = JSON.parse(raw) as AppData;
+    // Si la version est ancienne ou pas d'historique, c'est un premier lancement
+    return (parsed?.settings?.version ?? 1) < DATA_VERSION || !parsed?.history?.length;
+  } catch {
+    return true;
   }
 }
 
