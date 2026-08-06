@@ -957,28 +957,6 @@ export function Sales() {
         onConfirm={handleDeleteSale}
       />
 
-      {/* ============ PRINT AREA ============ */}
-      {printContent?.mode === "ticket" && (
-        <div className="print-area hidden print:block print-ticket">
-          <PrintableTicket
-            sale={printContent.sale}
-            currency={currency}
-            restaurantName={data.settings.restaurant.name}
-            paymentName={getPaymentMethodName(printContent.sale.paymentMethodId)}
-            ticketMessage={data.settings.restaurant.ticketMessage}
-          />
-        </div>
-      )}
-      {printContent?.mode === "list" && (
-        <div className="print-area hidden print:block">
-          <PrintableSalesList
-            sales={printContent.sales}
-            currency={currency}
-            restaurantName={data.settings.restaurant.name}
-            getPaymentMethodName={getPaymentMethodName}
-          />
-        </div>
-      )}
     </div>
   );
 }
