@@ -187,13 +187,21 @@ export function Tickets() {
     ? data.tickets.find((t) => t.id === selectedId) || null
     : null;
 
-  // Trigger print
-  useEffect(() => {
-    if (printTicket) {
-      const t = setTimeout(() => window.print(), 80);
-      return () => clearTimeout(t);
-    }
-  }, [printTicket]);
+  function handleExportTicketPdf(ticket: Ticket) {
+    const rows = [
+      { label: "Ticket", value: ticket.name },
+      { label: "Table", value: getTableName(ticket.tableId) },
+      { label: "Zone", value: getZoneName(ticket.zoneId) },
+      { label: "Statut", value: ticket.status },
+      { label: "Total", value: formatCurrency(ticket.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0), currency) },
+    ];
+    ticket.items.forEach((item, index) => {
+      rows.push({ label: `Produit ${index + 1}`, value: `${item.productName} × ${item.quantity} — ${formatCurrency(item.unitPrice, currency)}` });
+    });
+    exportSimplePdf(`Ticket ${ticket.name}`, rows, `ticket-${ticket.id}.pdf`);
+    toast.success("PDF exporté");
+    setPrintTicket(null);
+  }
 
   // ---- Handlers ----
   function handleCreateTicket() {
@@ -576,7 +584,7 @@ export function Tickets() {
                       </p>
                     </div>
                     {selectedTicket.status === "open" && (
-                      <Button variant="ghost" size="icon" onClick={() => setPrintTicket(selectedTicket)} title="Exporter en PDF">
+                      <Button variant="ghost" size="icon" onClick={() => selectedTicket && handleExportTicketPdf(selectedTicket)} title="Exporter en PDF">
                         <FileDown className="h-4 w-4" />
                       </Button>
                     )}
@@ -768,7 +776,7 @@ export function Tickets() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => setPrintTicket(selectedTicket)}
+                        onClick={() => selectedTicket && handleExportTicketPdf(selectedTicket)}
                         className="gap-1"
                       >
                         <FileDown className="h-4 w-4" /> Exporter en PDF
@@ -783,7 +791,7 @@ export function Tickets() {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setPrintTicket(selectedTicket)} className="gap-2 flex-1">
+                      <Button variant="outline" onClick={() => selectedTicket && handleExportTicketPdf(selectedTicket)} className="gap-2 flex-1">
                         <FileDown className="h-4 w-4" /> Exporter en PDF
                       </Button>
                       <Button

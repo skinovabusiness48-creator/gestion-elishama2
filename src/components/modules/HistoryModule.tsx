@@ -158,6 +158,18 @@ export function HistoryModule() {
     };
   }, [data.history]);
 
+  function handleExportPdf() {
+    const rows = data.history.slice(0, 200).map((h) => [formatDateTime(h.createdAt), h.action, h.entity, h.label]);
+    exportTablePdf({
+      title: "Historique",
+      subtitle: `Exporté le ${formatDateTime(new Date().toISOString())}`,
+      columns: ["Date", "Action", "Entité", "Détails"],
+      rows,
+      filename: "historique.pdf",
+    });
+    toast.success("PDF exporté");
+  }
+
   return (
     <div className="print-area">
       <PageHeader
@@ -170,7 +182,7 @@ export function HistoryModule() {
               variant="outline"
               size="sm"
               className="no-print gap-2"
-              onClick={() => window.print()}
+              onClick={handleExportPdf}
             >
               <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>

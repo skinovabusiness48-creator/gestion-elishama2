@@ -313,6 +313,18 @@ export function Expenses() {
     setEditCatName(cat.name);
   }
 
+  function handleExportPdf() {
+    const rows = filteredExpenses.map((e) => [formatDate(e.date), e.label, getExpenseCategoryName(e.categoryId), `${formatCurrency(e.amount, currency)}`, e.note || ""]);
+    exportTablePdf({
+      title: "Dépenses",
+      subtitle: `Exporté le ${formatDateTime(new Date().toISOString())}`,
+      columns: ["Date", "Libellé", "Catégorie", "Montant", "Note"],
+      rows,
+      filename: "depenses.pdf",
+    });
+    toast.success("PDF exporté");
+  }
+
   function saveEditCat() {
     if (!editingCat) return;
     const name = editCatName.trim();
@@ -333,7 +345,7 @@ export function Expenses() {
         icon={Wallet}
         actions={
           <>
-            <Button variant="outline" size="sm" className="no-print gap-2" onClick={() => window.print()}>
+            <Button variant="outline" size="sm" className="no-print gap-2" onClick={handleExportPdf}>
               <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button variant="outline" size="sm" className="no-print gap-2" onClick={exportCSV}>

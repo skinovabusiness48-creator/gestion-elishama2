@@ -5,9 +5,10 @@ import type { AppData } from "./types";
 import { defaultData, emptyData } from "./seed";
 
 const STORAGE_KEY = "elishama:data";
+// Version 4 : force la réimportation du jeu de données initial après ajout de nouveaux produits.
 // Version 3 : importe les données SQLite ELISHAMA au premier lancement.
 // Version 2 : supprime l'onboarding et les données de démo.
-const DATA_VERSION = 3;
+const DATA_VERSION = 4;
 
 export function loadData(): AppData {
   if (typeof window === "undefined") return emptyData();

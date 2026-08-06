@@ -82,6 +82,7 @@ import {
   Star,
 } from "lucide-react";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { exportTablePdf } from "@/lib/pdf";
 import type { Product, Category } from "@/lib/types";
 
 // ---------- Helpers locaux ----------
@@ -412,6 +413,18 @@ export function Products() {
     setDeleteCategoryId(null);
   }
 
+  function handleExportPdf() {
+    const rows = filteredProducts.map((p) => [p.name, getCategoryName(p.categoryId), `${formatCurrency(p.salePrice, currency)}`, `${p.stock}`, p.unit]);
+    exportTablePdf({
+      title: "Liste des produits",
+      subtitle: `Exporté le ${formatDateTime(new Date().toISOString())}`,
+      columns: ["Produit", "Catégorie", "Prix de vente", "Stock", "Unité"],
+      rows,
+      filename: "produits.pdf",
+    });
+    toast.success("PDF exporté");
+  }
+
   function moveCategory(index: number, dir: -1 | 1) {
     const target = index + dir;
     if (target < 0 || target >= sortedCategories.length) return;
@@ -441,7 +454,7 @@ export function Products() {
         icon={UtensilsCrossed}
         actions={
           <>
-            <Button variant="outline" className="gap-2 no-print" onClick={() => window.print()}>
+            <Button variant="outline" className="gap-2 no-print" onClick={handleExportPdf}>
               <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button className="gap-2 no-print" onClick={openAddProduct}>

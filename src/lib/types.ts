@@ -41,6 +41,7 @@ export interface Product {
   minStock: number;
   unit: string;
   description?: string;
+  internalCode?: string;
   image?: string;
   active: boolean;
   onMenu: boolean;

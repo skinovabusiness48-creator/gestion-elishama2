@@ -182,6 +182,18 @@ export function Stock() {
     setDeleteMovementId(null);
   }
 
+  function handleExportPdf() {
+    const rows = filteredProducts.map((p) => [p.name, `${p.stock}`, `${p.minStock}`, `${formatCurrency(p.purchasePrice ?? 0, currency)}`, p.unit]);
+    exportTablePdf({
+      title: "État du stock",
+      subtitle: `Exporté le ${formatDateTime(new Date().toISOString())}`,
+      columns: ["Produit", "Stock", "Stock min", "Prix d'achat", "Unité"],
+      rows,
+      filename: "stock.pdf",
+    });
+    toast.success("PDF exporté");
+  }
+
   // ---- Données dérivées pour dialogs ----
   const stockProduct = stockProductId ? getProduct(stockProductId) : null;
   const historyProduct = historyProductId ? getProduct(historyProductId) : null;
@@ -198,7 +210,7 @@ export function Stock() {
         subtitle="Suivez vos quantités, approvisionnez et corrigez votre inventaire."
         icon={Package}
         actions={
-          <Button variant="outline" className="gap-2 no-print" onClick={() => window.print()}>
+          <Button variant="outline" className="gap-2 no-print" onClick={handleExportPdf}>
             <FileDown className="h-4 w-4" /> Exporter en PDF
           </Button>
         }

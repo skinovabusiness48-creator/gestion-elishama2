@@ -60,6 +60,7 @@ import {
   Star,
 } from "lucide-react";
 import { isSameDay, formatCurrency, formatDateTime, genId } from "@/lib/format";
+import { exportSimplePdf, exportTablePdf } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
 import type { Sale, SaleItem, PaymentMethod, Product } from "@/lib/types";
 
@@ -103,19 +104,32 @@ export function Sales() {
   const handleNewSale = useCallback(() => setNewSaleOpen(true), []);
   useNewActionListener(handleNewSale);
 
-  // ---- Print state ----
-  // printContent: null | { mode: "ticket", sale } | { mode: "list", sales }
-  const [printContent, setPrintContent] = useState<
-    | { mode: "ticket"; sale: Sale }
-    | { mode: "list"; sales: Sale[] }
-    | null
-  >(null);
-
-  function printTicket(sale: Sale) {
-    setPrintContent({ mode: "ticket", sale });
+  function handleExportPdf() {
+    const rows = filteredSales.map((sale) => [formatDateTime(sale.createdAt), sale.ticketNumber, `${formatCurrency(sale.total, currency)}`, sale.paymentMethodId ? getPaymentMethodName(sale.paymentMethodId) : ""]);
+    exportTablePdf({
+      title: "Ventes",
+      subtitle: `Exporté le ${formatDateTime(new Date().toISOString())}`,
+      columns: ["Date", "Ticket", "Montant", "Paiement"],
+      rows,
+      filename: "ventes.pdf",
+    });
+    toast.success("PDF exporté");
   }
-  function printList() {
-    setPrintContent({ mode: "list", sales: filteredSales.length > 0 ? filteredSales : data.sales });
+
+  function exportSalePdf(sale: Sale) {
+    const rows = [
+      { label: "Ticket", value: sale.ticketNumber },
+      { label: "Date", value: formatDateTime(sale.createdAt) },
+      { label: "Paiement", value: getPaymentMethodName(sale.paymentMethodId) },
+      { label: "Sous-total", value: formatCurrency(sale.subtotal, currency) },
+      { label: "Remise", value: formatCurrency(sale.discount, currency) },
+      { label: "Total", value: formatCurrency(sale.total, currency) },
+    ];
+    sale.items.forEach((item, index) => {
+      rows.push({ label: `Article ${index + 1}`, value: `${item.productName} × ${item.quantity} — ${formatCurrency(item.total, currency)}` });
+    });
+    exportSimplePdf(`Vente ${sale.ticketNumber}`, rows, `vente-${sale.id}.pdf`);
+    toast.success("PDF exporté");
   }
 
   // ---- New sale form ----
@@ -162,16 +176,6 @@ export function Sales() {
     paymentMethodId && activePaymentMethods.some((pm) => pm.id === paymentMethodId)
       ? paymentMethodId
       : activePaymentMethods[0]?.id || "";
-
-  // Trigger print when printContent is set
-  useEffect(() => {
-    if (printContent) {
-      const t = setTimeout(() => {
-        window.print();
-      }, 80);
-      return () => clearTimeout(t);
-    }
-  }, [printContent]);
 
   // ---- Cart helpers ----
   function addToCart(p: Product) {
@@ -301,7 +305,7 @@ export function Sales() {
               <Button variant="outline" onClick={() => setPayMethodsOpen(true)} className="gap-2">
                 <CreditCard className="h-4 w-4" /> Modes de paiement
               </Button>
-              <Button variant="outline" onClick={printList} className="gap-2">
+              <Button variant="outline" onClick={handleExportPdf} className="gap-2">
                 <FileDown className="h-4 w-4" /> Exporter en PDF
               </Button>
               <Button onClick={openNewSale} className="gap-2">
@@ -417,7 +421,7 @@ export function Sales() {
                               <Button size="icon" variant="ghost" onClick={() => setDetailsSale(s)} title="Voir détails">
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" onClick={() => printTicket(s)} title="Exporter le ticket en PDF">
+                              <Button size="icon" variant="ghost" onClick={() => exportSalePdf(s)} title="Exporter le ticket en PDF">
                                 <FileDown className="h-4 w-4" />
                               </Button>
                               <Button
@@ -463,7 +467,7 @@ export function Sales() {
                           <Button size="sm" variant="outline" onClick={() => setDetailsSale(s)} className="flex-1 gap-1">
                             <Eye className="h-4 w-4" /> Détails
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => printTicket(s)} className="flex-1 gap-1">
+                          <Button size="sm" variant="outline" onClick={() => exportSalePdf(s)} className="flex-1 gap-1">
                             <FileDown className="h-4 w-4" /> Exporter en PDF
                           </Button>
                           <Button
@@ -794,7 +798,7 @@ export function Sales() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => detailsSale && printTicket(detailsSale)} className="gap-2">
+            <Button variant="outline" onClick={() => detailsSale && exportSalePdf(detailsSale)} className="gap-2">
               <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>
             <Button onClick={() => setDetailsSale(null)}>Fermer</Button>
@@ -826,7 +830,7 @@ export function Sales() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => recapSale && printTicket(recapSale)}
+              onClick={() => recapSale && exportSalePdf(recapSale)}
               className="gap-2"
             >
               <FileDown className="h-4 w-4" /> Exporter le ticket en PDF

@@ -340,6 +340,25 @@ export function Reports() {
     return PERIOD_LABELS[period];
   }, [period, dateRange, dateFormat]);
 
+  function handleExportPdf() {
+    const rows = [
+      ["Période", periodLabel],
+      ["Ventes", `${formatCurrency(stats.revenue, currency)}`],
+      ["Dépenses", `${formatCurrency(stats.expenses, currency)}`],
+      ["Bénéfice", `${formatCurrency(stats.profit, currency)}`],
+      ["Produits vendus", `${stats.itemsSold}`],
+      ["Produits en stock", `${stats.activeProducts}`],
+    ];
+    exportTablePdf({
+      title: "Rapports",
+      subtitle: `Exporté le ${formatDateTime(new Date().toISOString())}`,
+      columns: ["Indicateur", "Valeur"],
+      rows,
+      filename: "rapports.pdf",
+    });
+    toast.success("PDF exporté");
+  }
+
   return (
     <div className="print-area">
       <PageHeader
@@ -352,7 +371,7 @@ export function Reports() {
               variant="outline"
               size="sm"
               className="no-print gap-2"
-              onClick={() => window.print()}
+              onClick={handleExportPdf}
             >
               <FileDown className="h-4 w-4" /> Exporter en PDF
             </Button>

@@ -53,6 +53,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { isSameDay, formatCurrency, formatDateTime, formatDate } from "@/lib/format";
+import { exportTablePdf } from "@/lib/pdf";
 import type { CashOperation, CashOperationType } from "@/lib/types";
 
 const TYPE_LABELS: Record<CashOperationType, string> = {
@@ -124,13 +125,17 @@ export function Cash() {
   // ---- Filter operations ----
   const filteredOps = todayOps.filter((o) => typeFilter === "all" || o.type === typeFilter);
 
-  // Trigger print
-  useEffect(() => {
-    if (printMode) {
-      const t = setTimeout(() => window.print(), 80);
-      return () => clearTimeout(t);
-    }
-  }, [printMode]);
+  function handleExportPdf() {
+    const rows = filteredOps.map((op) => [formatDateTime(op.createdAt), TYPE_LABELS[op.type], `${formatCurrency(op.amount, currency)}`, op.label]);
+    exportTablePdf({
+      title: "Caisse",
+      subtitle: `Exporté le ${formatDateTime(new Date().toISOString())}`,
+      columns: ["Date", "Type", "Montant", "Libellé"],
+      rows,
+      filename: "caisse.pdf",
+    });
+    toast.success("PDF exporté");
+  }
 
   // ---- Handlers ----
   function handleAddIn() {
@@ -201,7 +206,7 @@ export function Cash() {
           icon={Banknote}
           actions={
             <>
-              <Button variant="outline" onClick={() => setPrintMode(true)} className="gap-2">
+              <Button variant="outline" onClick={handleExportPdf} className="gap-2">
                 <FileDown className="h-4 w-4" /> Exporter en PDF
               </Button>
             </>
